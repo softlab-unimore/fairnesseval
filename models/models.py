@@ -59,7 +59,7 @@ def finetune_model(base_model_code, X, y, random_seed=0):
 
 model_list = ['hybrids', 'unmitigated', 'fairlearn', 'ThresholdOptimizer', 'MetaFairClassifier',
                   'AdversarialDebiasing', 'Kearns', 'Calmon', 'ZafarDI', 'Hardt', 'fairlearn_full', 'ZafarEO',
-                  'Feld']
+                  'Feld', 'expgrad']
 
 def get_model(method_str, random_state=42, **kwargs):
     param_dict = dict(method_str=method_str, random_state=random_state, )
@@ -97,7 +97,7 @@ def get_model(method_str, random_state=42, **kwargs):
         model = wrappers.ZafarEO(**param_dict, **kwargs)
     elif method_str == methods_name_dict['Hardt']:
         model = wrappers.Hardt(**param_dict, **kwargs)
-    elif method_str in [methods_name_dict['fairlearn_full'], methods_name_dict['fairlearn']]:
+    elif method_str in [methods_name_dict['fairlearn_full'], methods_name_dict['fairlearn'], methods_name_dict['expgrad']]:
         model = wrappers.ExponentiatedGradientPmf(**param_dict, **kwargs)
     else:
         try:

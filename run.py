@@ -90,22 +90,23 @@ def launch_experiment_by_config(exp_dict:dict):
         params = exp_dict.pop('params')
     else:
         params = []
-    results_dir = exp_dict.get('results_path', 'results')
-
-    host_name = socket.gethostname()
-    if "." in host_name:
-        host_name = host_name.split(".")[-1]
-    full_results_dir = os.path.join(results_dir, host_name, experiment_id)
-    os.makedirs(full_results_dir, exist_ok=True)
+    results_dir = exp_dict.get('results_path', None)
+    if results_dir is None:
+        host_name = socket.gethostname()
+        if "." in host_name:
+            host_name = host_name.split(".")[-1]
+        results_dir = os.path.join('results', host_name)
+    results_dir = os.path.join(results_dir, experiment_id)
+    os.makedirs(results_dir, exist_ok=True)
     try:
-        for filepath in os.scandir(full_results_dir):
+        for filepath in os.scandir(results_dir):
             send2trash.send2trash(filepath)
     except:
         pass
     # logger = logging.getLogger(__name__)
     logging.basicConfig(level=logging.INFO,
                         format='%(asctime)s %(levelname)s:%(name)s: %(message)s', datefmt='%d/%m/%y %H:%M:%S',
-                        handlers=[logging.FileHandler(os.path.join(full_results_dir, 'run.log'), mode='a'),
+                        handlers=[logging.FileHandler(os.path.join(results_dir, 'run.log'), mode='a'),
                                   logging.StreamHandler()], force=True)
 
     def exc_handler(exctype, value, tb):
@@ -855,9 +856,12 @@ class ExperimentRun(metaclass=Singleton):
     def load_best_params(self, base_model_code, fraction, random_seed=0):
         directory = os.path.join(self.base_result_dir, self.dataset_str, 'tuned_models')
         # os.makedirs(directory, exist_ok=True)
-        path = os.path.join(directory, f'grid_search_{base_model_code}_rnd{random_seed}_frac{fraction}.pkl')
-        grid_clf = joblib.load(path)
-        return grid_clf.best_params_
+        try:
+            path = os.path.join(directory, f'grid_search_{base_model_code}_rnd{random_seed}_frac{fraction}.pkl')
+            grid_clf = joblib.load(path)
+            return grid_clf.best_params_
+        except:
+            return {}
 
 
 if __name__ == "__main__":
