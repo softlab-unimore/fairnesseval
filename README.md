@@ -28,11 +28,13 @@ if __name__ == "__main__":
         run.launch_experiment_by_id(x)
 
 ```
+
 The `run.py` file contains the code to launch the experiments.
 The configurations are read from `utils_experiment_parameters.py` module, and are organized in a list of dictionaries.
 e.g.:
 ```python
 import json
+import run
 
 # Experiment configurations example
 RANDOM_SEEDS_v1 = [0,1]
@@ -54,6 +56,26 @@ experiment_configurations = [
     'model_params': eta_params_v1,
 },
 ]
+
+if __name__ == "__main__":
+
+    conf_todo = [
+        # next on fairlearn-2
+        # next on fairlearn-3
+
+        # 'acsER_binB2.1r',
+        # "demo.x.test",
+        "demo.default.test",
+        # 'demo.C.1r',
+        # 'demo.C.1r',
+        # testing
+        # 'acs_h_gs1_1.test',
+        # 'f_eta0_1.0.test',
+
+    ]
+
+    for x in conf_todo:
+        run.launch_experiment_by_id(x)
 ```
 
 Otherways, you can launch the experiment directly from the command line using the following command:
