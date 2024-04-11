@@ -50,9 +50,19 @@ eta_params_restricted_v2 = json.dumps({'eta0': [2.0], 'run_linprog_step': [False
                                        'max_iter': [100]})
 
 experiment_configurations = [
-
     {'experiment_id': 'demo.0.test', 'dataset_names': ('adult_sigmod',), 'model_names': ('LogisticRegression',),
      'random_seeds': [0], 'results_path': './demo_results'},
+    {"experiment_id": "demo.2.test",
+     "dataset_names": ["compas",
+                       "german"],
+     "model_names": ["LogisticRegression"],
+     "random_seeds": [0],
+     "model_params": {"eps": 0.005,
+                      "constraint_code": "dp",
+                      "base_model_code": ["lr"]},
+     "train_fractions": [0.016, 0.063, 0.251, 1.0],
+     "results_path": "./demo_results",
+     "params": ["--debug"]},
     {"experiment_id": "demo.1.test",
      'dataset_names': sigmod_datasets,
      "model_names": ["fairlearn"],

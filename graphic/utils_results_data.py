@@ -101,22 +101,24 @@ def prepare_data(df):
         df['dataset_name'] = df['dataset'].str.replace('_aif360', '').str.replace('_sigmod', '')
     df = add_sigmod_metric(df)
     if 'model_code' not in df.columns:
-        df['model_code'] = df['model_name']
-    if 'method' not in df.columns:
-        df['method'] = 'hybrids'
-    expgrad_mask = df['method'] == 'hybrids'
-    hybrid = df[expgrad_mask].copy()
-    non_hybrid = df[~expgrad_mask]
-    if not hybrid.empty:
-        hybrid['frac'].fillna(1, inplace=True)
-        # hybrid = calculate_movign_param(None, hybrid)
-        if not df[df['phase'] == 'grid_frac'].empty:
-            hybrid = take_max_for_grid_search(hybrid)
-            hybrid['eps'] = pd.to_numeric(hybrid['eps'], errors='coerce')
-            models_with_gridsearch = hybrid['model_code'].isin(
-                hybrid.query('phase == "grid_frac"')['model_code'].unique())
-            hybrid.loc[~models_with_gridsearch, 'grid_frac'] = 0
-    return pd.concat([hybrid, non_hybrid])
+        df.rename(columns={'model_name': 'model_code'}, inplace=True)
+
+    if 'method' in df.columns:
+        expgrad_mask = df['method'] == 'hybrids'
+        hybrid = df[expgrad_mask].copy()
+        non_hybrid = df[~expgrad_mask]
+        if not hybrid.empty:
+            hybrid['frac'].fillna(1, inplace=True)
+            # hybrid = calculate_movign_param(None, hybrid)
+            if not df[df['phase'] == 'grid_frac'].empty:
+                hybrid = take_max_for_grid_search(hybrid)
+                hybrid['eps'] = pd.to_numeric(hybrid['eps'], errors='coerce')
+                models_with_gridsearch = hybrid['model_code'].isin(
+                    hybrid.query('phase == "grid_frac"')['model_code'].unique())
+                hybrid.loc[~models_with_gridsearch, 'grid_frac'] = 0
+        df = pd.concat([hybrid, non_hybrid])
+    return df
+
 
 
 def add_missing_columns(df):
@@ -332,6 +334,15 @@ def get_combined_groupby(x, alpha=0.5):
     comb_df['alpha'] = alpha
     return comb_df
 
+def available_experiment_results(results_path):
+    if not os.path.exists(results_path):
+        print(f"The path {results_path} does not exist.")
+        return []
+
+    # List all directories in the path
+    experiments = [name for name in os.listdir(results_path) if os.path.isdir(os.path.join(results_path, name))]
+
+    return experiments
 
 def load_results_experiment_id(experiment_code_list, dataset_results_path):
     df_list = []
@@ -343,6 +354,8 @@ def load_results_experiment_id(experiment_code_list, dataset_results_path):
                 cur_dir = tmp_dir
                 break
         if cur_dir is None or not os.path.exists(cur_dir):
+            cur_dir = os.path.join(dataset_results_path, experiment_code)
+        if cur_dir is None or not os.path.exists(cur_dir):
             logging.warning(f'{tmp_dir} does not exists. Skipped.')
             continue
 
@@ -352,7 +365,8 @@ def load_results_experiment_id(experiment_code_list, dataset_results_path):
 
                 current_config = utils_experiment_parameters.get_config_by_id(experiment_code)
                 df = prepare_data(df)
-                if 'grid_fractions' in current_config.keys() and current_config['grid_fractions'] == [1]:
+
+                if current_config is not None and 'grid_fractions' in current_config.keys() and current_config['grid_fractions'] == [1]:
                     models_with_gridsearch = df.query('phase == "grid_frac"')['model_code'].unique()
                     mask = df['model_code'].isin(models_with_gridsearch) & (df['grid_frac'] == 1)
                     df.loc[mask, 'model_code'] = df.loc[mask, 'model_code'].str.replace('_gf_1', '') + '_gf_1'
@@ -369,6 +383,7 @@ def load_results_experiment_id(experiment_code_list, dataset_results_path):
     mask = all_df['model_code'].str.contains('unconstrained')
     if 'exp_frac' in all_df.columns:
         all_df.loc[mask, 'exp_frac'] = all_df.loc[mask, 'exp_frac'].fillna(1)
+    all_df.columns = all_df.columns.str.replace('violation', 'DemographicParity')
     return all_df
 
 

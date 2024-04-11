@@ -194,7 +194,7 @@ class Hardt(GeneralAifModel):
 
 
 class ZafarDI:
-    def __init__(self, method_str, base_model, datasets, eps=None, constraint_code=None, random_state=None):
+    def __init__(self, method_str, datasets, base_model=None, eps=None, constraint_code=None, random_state=None):
         seed(random_state)  # set the random seed so that the random permutations can be reproduced again
         np.random.seed(random_state)
         X, y, A = datasets[:3]
@@ -324,7 +324,7 @@ class Kearns(GeneralAifModel):
 
 
 class ThresholdOptimizerWrapper(ThresholdOptimizer):
-    def __init__(self, *args, random_state=0, **kwargs):
+    def __init__(self, *args, random_state=0, datasets=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.random_state = random_state
 

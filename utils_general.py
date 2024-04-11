@@ -7,7 +7,15 @@ class DeprecateAction(argparse.Action):
         warnings.warn("Argument %s is deprecated and is *ignored*." % self.option_strings)
         # delattr(namespace, self.dest)
 
+def intersection_sorted(a,b):
+    # Intersection of two lists keeping the order of the first list
+    a = list(a)
+    return sorted(list(set(a) & set(b)), key = lambda x: a.index(x))
 
+def difference_sorted(a,b):
+    # Difference of two lists keeping the order of the first list
+    a = list(a)
+    return sorted(list(set(a) - set(b)), key = lambda x: a.index(x))
 
 def mark_deprecated_help_strings(parser, prefix="DEPRECATED"):
     for action in parser._actions:
