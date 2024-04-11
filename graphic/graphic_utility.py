@@ -17,6 +17,8 @@ from graphic.utils_results_data import get_info, get_confidence_error, mean_conf
     aggregate_phase_time, load_results, filter_results, seed_columns, prepare_for_plot, constraint_code_to_name
 import matplotlib as mpl
 
+from utils_general import intersection_sorted, difference_sorted
+
 sns.set()  # for plot styling
 # sns.set(rc={'figure.figsize':(8,6)})
 # sns.set_context('notebook')
@@ -435,8 +437,6 @@ def bar_plot_function_by_model(df, ax, fig: plt.figure, name_col='model_code', y
     yerr = df[y_axis_list + '_error']
     yerr.columns = y_axis_list
 
-
-
     df[yerr.columns].plot.bar(yerr=yerr, rot=0, fontsize=10, ax=ax)
     legend = ax.get_legend()
     labels = (x.get_text() for x in legend.get_texts())
@@ -615,7 +615,7 @@ def plot_all_df_subplots(all_df, model_list, chart_name, save, show=True, groupi
                           axis_to_plot]
         if subplots:
             pl_util.show = False
-            figsize = np.array([14.4/5*df_to_plot[subplots_by_col].nunique(), 2.4 * len(list(turn_axis_list))])
+            figsize = np.array([14.4 / 5 * df_to_plot[subplots_by_col].nunique(), 2.4 * len(list(turn_axis_list))])
             if len(list(turn_axis_list)) == 1:
                 figsize = np.array([5, 5])
             fig, axes_array = plt.subplots(nrows=len(turn_axis_list), ncols=df_to_plot[subplots_by_col].nunique(),
@@ -701,7 +701,6 @@ def plot_all_df_subplots(all_df, model_list, chart_name, save, show=True, groupi
                 fig.tight_layout()
                 if np.unique(xlabels).size == 1:
                     fig.supxlabel(xlabels[0].replace('\n', ' '), y=0, va='baseline', fontsize='small')
-
 
             # pl_util.fig.suptitle(StyleUtility.replace_words(f'{base_model_code} - {constraint_code}'))
             # fig.subplots_adjust(bottom=0.1)
@@ -829,9 +828,10 @@ def check_axis_validity(df, x_axis, y_axis):
     if y_axis == x_axis:
         raise ValueError(f'{x_axis} and {y_axis} are not a valid x_axis, y_axis combination.')
 
-def plot_demo_subplots(all_df, model_list, chart_name, save, show=True, grouping_col=None, axis_to_plot=None,
+
+def plot_demo_subplots(all_df, model_list, chart_name, save, show=False, grouping_col=None, axis_to_plot=None,
                        sharex=True,
-                       sharey='row', result_path_name='all_df', single_chart=False, xlog=False,
+                       sharey='row', result_path_name='all_df', xlog=False,
                        increasing_marker_size=False,
                        horizontal_subplots_by_col='dataset_name', single_plot=True,
                        ylim_list=None, annotate_mode='all', annotate_col=None,
@@ -852,11 +852,18 @@ def plot_demo_subplots(all_df, model_list, chart_name, save, show=True, grouping
         if params.get('figsize', None) is not None:
             figsize = params['figsize']
         else:
-            figsize = np.array([14.4 / 5 * df_to_plot[horizontal_subplots_by_col].nunique(), 2.4 * len(list(axis_to_plot))])
-        fig, axes_array = plt.subplots(nrows=len(axis_to_plot), ncols=df_to_plot[horizontal_subplots_by_col].nunique(),
-                                       sharex=sharex,
-                                       sharey=sharey, figsize=figsize,
-                                       tight_layout=True)  # todo fix sharey not showing multiple axis labels
+            figsize = np.array(
+                [14.4 / 5 * df_to_plot[horizontal_subplots_by_col].nunique(), 2.4 * len(list(axis_to_plot))])
+        # fig = plt.figure()
+        #
+        # fig = plt.gcf()
+        # fig.clear()
+        # axes_array = fig.add_subplot(
+        fig, axes_array= plt.subplots(
+            nrows=len(axis_to_plot), ncols=df_to_plot[horizontal_subplots_by_col].nunique(),
+            sharex=sharex,
+            sharey=sharey, figsize=figsize,
+            tight_layout=True)  # todo fix sharey not showing multiple axis labels
         axes_array = np.array(axes_array).reshape(len(axis_to_plot), -1)
         pl_util.fig = fig
     for row, (x_axis, y_axis) in enumerate(axis_to_plot):
@@ -933,7 +940,7 @@ def plot_demo_subplots(all_df, model_list, chart_name, save, show=True, grouping
             #     ax.xaxis.set_ticklabels([])
             fig.tight_layout()
             if np.unique(xlabels).size == 1:
-                fig.supxlabel(xlabels[0].replace('\n', ' '), y=0, va='baseline', fontsize='small')
+                fig.supxlabel(xlabels[0].replace('\n', ' '), y=0, va='baseline', fontsize='medium')
 
         # pl_util.fig.suptitle(StyleUtility.replace_words(f'{base_model_code} - {constraint_code}'))
         # fig.subplots_adjust(bottom=0.1)
@@ -947,12 +954,15 @@ def plot_demo_subplots(all_df, model_list, chart_name, save, show=True, grouping
     pl_util.show = show
 
     dir_path = pl_util.get_base_path(additional_dir_path=result_path_name)
+
+    df_to_plot = df_to_plot.drop(columns=['x', 'xerr', 'y', 'yerr'])
+
+    first_columns = intersection_sorted(['model_code', 'dataset_name', 'train_fractions'], df_to_plot.columns)
+    df_to_plot = df_to_plot[first_columns + difference_sorted(df_to_plot.columns, first_columns)]
     df_to_plot.to_csv(os.path.join(dir_path, f'{chart_name}_VARY_{grouping_col}_metrics_mean_error.csv'))
     # if single_chart:
     #     plot_all_df_single_chart(pl_util, grouping_col, mean_error_df, model_set_name)
-    return df_to_plot
-
-
+    return pl_util.fig
 
 
 save = True
