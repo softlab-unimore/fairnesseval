@@ -133,6 +133,7 @@ class StyleUtility:
                         ])
 
     graphic_style_map = {
+        'fairlearn': {'color': 'tab:blue', 'marker': 'o', 'linestyle': '-'},
         'EXPGRAD++': {'color': 'tab:blue', 'marker': '.', 'linestyle': '--'},
         'EXPGRAD=adaptive GS=No LP=Yes': {'color': 'tab:blue', 'marker': '.', 'linestyle': '--'},
         'EXPGRAD=adaptive GS=No LP=Yes binary': {'color': 'tab:blue', 'marker': '.', 'linestyle': '--'},
@@ -150,7 +151,8 @@ class StyleUtility:
         'EXPGRAD=adaptive GS=1 LP=Yes': {'color': 'tab:red', 'marker': '.', 'linestyle': '-.'},
         'EXPGRAD=static GS=1 LP=Yes': {'color': 'tab:purple', 'marker': '.', 'linestyle': '-.'},
         'EXPGRAD=static GS=sqrt LP=Yes': {'color': 'tab:green', 'marker': '.', 'linestyle': '-.'},
-
+        'LogisticRegression': {'color': 'tab:brown', 'marker': 'X', 'linestyle': '-',  #'s': unmitigated_markersize**1.6,
+                               },
         'UNMITIGATED full': {'color': 'tab:brown', 'marker': 'X', 'linestyle': '-', 's': unmitigated_markersize,
                              'zorder': 3},
         'UNMITIGATED full binary': {'color': 'tab:brown', 'marker': 'X', 'linestyle': '-', 's': unmitigated_markersize,
@@ -187,12 +189,13 @@ class StyleUtility:
         'ZafarEO': {'color': 'tab:purple', 'marker': 's', 'linestyle': (0, (1, 1)), 'linewidth': linewidth},
         'ZafarEO binary': {'color': 'tab:purple', 'marker': 's', 'linestyle': (0, (1, 1)),
                            'linewidth': linewidth},
-        'Feld': {'color': 'tab:orange', 'marker': 'D', 'linestyle': (5, (10, 3)), 'alpha': 0.75},
+        'Feld': {'color': 'tab:orange', 'marker': 'D', 'linestyle': (5, (10, 3)), 'alpha': 0.75, 's': markersize **.7},
         'Feld binary': {'color': 'tab:orange', 'marker': 'D', 'linestyle': (5, (10, 3))},
         'Feld_orig': {'color': 'tab:orange', 'marker': MarkerStyle('D', fillstyle='none'), 'linestyle': (5, (10, 3))},
+        'default': {'color': 'tab:red', 'marker': 's', 'linestyle': '--'},
 
     }
-
+    graphic_style_map['expgrad'] = graphic_style_map['fairlearn']
     graphic_style_map = {replace_words(key): dict(base_config, label=replace_words(key), **value) for key, value in
                          graphic_style_map.items()}
 
@@ -207,7 +210,8 @@ class StyleUtility:
     def get_style(key, index=None):
         label = replace_words(StyleUtility.get_label(key))
         if label not in StyleUtility.graphic_style_map.keys():
-            raise KeyError(f'key {label} not in graphic_style_map')
+            print(f'key {label} not in graphic_style_map')
+            return StyleUtility.graphic_style_map['default']
         return StyleUtility.graphic_style_map[label]
 
     @staticmethod
