@@ -1,4 +1,4 @@
-import run
+from fairnesseval import run
 
 done_conf = [
     # done on fairlearn-2

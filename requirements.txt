@@ -1,2 +1,13 @@
-folktables
-aif360
+aif360>=0.5.0
+fairlearn>=0.9.0.dev0
+folktables>=0.0.12
+matplotlib>=3.7.1
+numpy>=1.22.4
+pandas>=1.4.2
+Requests>=2.31.0
+scikit_learn>=1.0.2
+scipy>=1.7.3
+seaborn>=0.11.2
+Send2Trash>=1.8.0
+setuptools>=67.6.1
+tqdm>=4.64.0

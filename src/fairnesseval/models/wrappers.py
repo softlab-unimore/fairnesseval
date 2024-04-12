@@ -21,8 +21,8 @@ from fairlearn.postprocessing import ThresholdOptimizer
 import fair_classification.utils
 import fair_classification.funcs_disp_mist
 import fair_classification.loss_funcs
-import utils_prepare_data
-import utils_experiment_parameters as ut_exp
+from fairnesseval import utils_prepare_data
+from fairnesseval import utils_experiment_parameters as ut_exp
 from fairlearn.reductions import ExponentiatedGradient
 from functools import partial
 
