@@ -3,9 +3,9 @@ import os
 
 import pandas as pd
 
-from graphic import utils_results_data, graphic_utility
-from graphic.style_utility import StyleUtility
-from graphic.utils_results_data import prepare_for_plot
+import utils_results_data, graphic_utility
+from .style_utility import StyleUtility
+from .utils_results_data import prepare_for_plot
 from graphic_utility import plot_all_df_subplots, PlotUtility
 
 if __name__ == '__main__':

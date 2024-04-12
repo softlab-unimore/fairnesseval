@@ -4,10 +4,10 @@ import os
 
 import pandas as pd
 
-from graphic import utils_results_data
-from graphic.graphic_utility import select_oracle_call_time, PlotUtility, plot_all_df_subplots, \
+import utils_results_data
+from .graphic_utility import select_oracle_call_time, PlotUtility, plot_all_df_subplots, \
     extract_expgrad_oracle_time
-from graphic.utils_results_data import prepare_for_plot
+from .utils_results_data import prepare_for_plot
 
 if __name__ == '__main__':
     save = True

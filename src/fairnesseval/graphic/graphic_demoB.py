@@ -2,7 +2,7 @@ import os
 
 import numpy as np
 
-from graphic import utils_results_data
+import utils_results_data
 from graphic_utility import plot_demo_subplots
 
 

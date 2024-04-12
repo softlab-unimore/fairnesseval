@@ -2,8 +2,8 @@ import os
 
 import pandas as pd
 
-from graphic.graphic_utility import PlotUtility
-from graphic.utils_results_data import load_results, filter_results, get_info
+from .graphic_utility import PlotUtility
+from .utils_results_data import load_results, filter_results, get_info
 
 if __name__ == '__main__':
     save = True

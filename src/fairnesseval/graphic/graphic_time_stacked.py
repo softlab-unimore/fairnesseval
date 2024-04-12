@@ -2,8 +2,8 @@ import os
 
 import pandas as pd
 
-from graphic import utils_results_data
-from graphic.graphic_utility import plot_routine_other
+import utils_results_data
+from .graphic_utility import plot_routine_other
 
 if __name__ == '__main__':
     save = True

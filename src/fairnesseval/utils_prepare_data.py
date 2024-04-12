@@ -14,7 +14,7 @@ import folktables
 from fairlearn.reductions import DemographicParity, EqualizedOdds, UtilityParity
 from folktables import ACSDataSource, generate_categories
 
-import fairnesseval as fe
+from .utils_general import Singleton
 
 
 try:
@@ -382,7 +382,7 @@ def get_constraint(constraint_code, eps):
     return constraint(difference_bound=eps)
 
 
-class DataValuesSingleton(metaclass=fe.utils_general.Singleton):
+class DataValuesSingleton(metaclass=Singleton):
     original_sensitive_attr = None
     train_index = None
     test_index = None

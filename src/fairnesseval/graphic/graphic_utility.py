@@ -11,9 +11,9 @@ import pandas as pd
 from matplotlib.markers import MarkerStyle
 from matplotlib.transforms import Affine2D
 
-from graphic import utils_results_data
-from graphic.style_utility import StyleUtility, replace_words, replace_words_in_list
-from graphic.utils_results_data import get_info, get_confidence_error, mean_confidence_interval, \
+import utils_results_data
+from .style_utility import StyleUtility, replace_words, replace_words_in_list
+from .utils_results_data import get_info, get_confidence_error, mean_confidence_interval, \
     aggregate_phase_time, load_results, filter_results, seed_columns, prepare_for_plot, constraint_code_to_name
 import matplotlib as mpl
 

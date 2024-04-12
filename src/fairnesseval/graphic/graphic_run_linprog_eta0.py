@@ -3,9 +3,9 @@ import os
 
 import pandas as pd
 
-from graphic import utils_results_data
+import utils_results_data
 from graphic_utility import PlotUtility, plot_all_df_subplots
-from graphic.utils_results_data import best_gap_filter_on_eta0
+from .utils_results_data import best_gap_filter_on_eta0
 
 if __name__ == '__main__':
     save = True
