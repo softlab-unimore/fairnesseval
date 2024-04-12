@@ -11,8 +11,8 @@ import numpy as np
 import pandas as pd
 from scipy.stats import sem, t
 
-import utils_experiment_parameters
-from run import params_initials_map
+from fairnesseval import utils_experiment_parameters
+from fairnesseval.run import params_initials_map
 
 seed_columns = ['random_seed', 'train_test_fold', 'train_test_seed']
 cols_to_synch = ['dataset_name', 'base_model_code', 'constraint_code', 'eps', 'train_test_seed', 'random_seed',
