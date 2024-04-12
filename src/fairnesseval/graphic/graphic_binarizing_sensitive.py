@@ -8,8 +8,8 @@ from matplotlib import pyplot as plt
 from . import utils_results_data
 from .style_utility import StyleUtility
 from .utils_results_data import prepare_for_plot
-from graphic_utility import plot_all_df_subplots, PlotUtility
-import graphic_utility
+from .graphic_utility import plot_all_df_subplots, PlotUtility
+from . import graphic_utility
 
 if __name__ == '__main__':
     save = True

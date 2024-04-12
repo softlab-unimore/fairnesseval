@@ -2,8 +2,8 @@ import os
 
 import numpy as np
 
-import utils_results_data
-from graphic_utility import plot_demo_subplots
+from . import utils_results_data
+from .graphic_utility import plot_demo_subplots
 
 
 

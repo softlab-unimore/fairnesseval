@@ -11,13 +11,13 @@ import pandas as pd
 from matplotlib.markers import MarkerStyle
 from matplotlib.transforms import Affine2D
 
-import utils_results_data
+from . import utils_results_data
 from .style_utility import StyleUtility, replace_words, replace_words_in_list
 from .utils_results_data import get_info, get_confidence_error, mean_confidence_interval, \
     aggregate_phase_time, load_results, filter_results, seed_columns, prepare_for_plot, constraint_code_to_name
 import matplotlib as mpl
 
-from utils_general import intersection_sorted, difference_sorted
+from fairnesseval.utils_general import intersection_sorted, difference_sorted
 
 sns.set()  # for plot styling
 # sns.set(rc={'figure.figsize':(8,6)})

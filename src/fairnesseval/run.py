@@ -20,7 +20,10 @@ import re
 import send2trash
 from sklearn.model_selection import train_test_split
 from tqdm import tqdm
-import fairnesseval as fe
+
+from fairnesseval import utils_experiment_parameters, utils_prepare_data, utils_general, metrics
+from fairnesseval.models import models
+from fairnesseval.utils_general import Singleton
 
 
 def adjust_minus(x):
@@ -144,7 +147,7 @@ def launch_experiment_by_config(exp_dict:dict):
 
 
 def launch_experiment_by_id(experiment_id: str):
-    exp_dict = fe.utils_experiment_parameters.get_config_by_id(experiment_id)
+    exp_dict = utils_experiment_parameters.get_config_by_id(experiment_id)
     return launch_experiment_by_config(exp_dict)
 
 
@@ -153,7 +156,7 @@ def set_general_random_seed(random_seed):
     joblib.parallel.PRNG = np.random.RandomState(random_seed)
 
 
-class ExperimentRun(metaclass=fe.utils_general.Singleton):
+class ExperimentRun(metaclass=Singleton):
 
     def __init__(self):
         host_name = socket.gethostname()
@@ -175,7 +178,7 @@ class ExperimentRun(metaclass=fe.utils_general.Singleton):
 
         arg_parser.add_argument("--metrics", choices=['default', 'conversion_to_binary_sensitive_attribute'],
                                 default='default')
-        arg_parser.add_argument("--preprocessing", choices=fe.utils_prepare_data.preprocessing_function_map.keys(),
+        arg_parser.add_argument("--preprocessing", choices=utils_prepare_data.preprocessing_function_map.keys(),
                                 default='default')
         # For Fairlearn and Hybrids
         arg_parser.add_argument("--eps", nargs='+', type=float, default=[None])
@@ -225,7 +228,7 @@ class ExperimentRun(metaclass=fe.utils_general.Singleton):
         arg_parser.add_argument('--switch_pos')
         arg_parser.add_argument('--switch_neg')
         # arg_parser.add_argument("--test_ratio", type=float, default=0.3)
-        fe.utils_general.mark_deprecated_help_strings(arg_parser)
+        utils_general.mark_deprecated_help_strings(arg_parser)
         args = arg_parser.parse_args()
         params_to_initials_map = {get_initials(key): key for key in args.__dict__.keys()}
         prm = args.__dict__.copy()
@@ -260,7 +263,7 @@ class ExperimentRun(metaclass=fe.utils_general.Singleton):
         self.dataset_str = prm['dataset_name']
 
 
-        self.metrics_dict = fe.metrics.get_metrics_dict(prm['metrics'])
+        self.metrics_dict = metrics.get_metrics_dict(prm['metrics'])
 
 
 
@@ -269,8 +272,8 @@ class ExperimentRun(metaclass=fe.utils_general.Singleton):
         prm = self.prm
 
 
-        datasets = fe.utils_prepare_data.get_dataset(self.dataset_str, prm=self.prm)
-        datasets = fe.utils_prepare_data.preprocess_dataset(datasets, prm=self.prm)
+        datasets = utils_prepare_data.get_dataset(self.dataset_str, prm=self.prm)
+        datasets = utils_prepare_data.preprocess_dataset(datasets, prm=self.prm)
 
         self.datasets = datasets
         X, y, A = datasets[:3]
@@ -286,7 +289,7 @@ class ExperimentRun(metaclass=fe.utils_general.Singleton):
                                      'redo_tuning'])  # TODO: random_seed=0 to simplify, may be corrected later.
 
             for train_test_fold, datasets_divided in tqdm(enumerate(
-                    fe.utils_prepare_data.split_dataset_generator(self.dataset_str, datasets, train_test_seed,
+                    utils_prepare_data.split_dataset_generator(self.dataset_str, datasets, train_test_seed,
                                                                prm['split_strategy'], test_size=prm['test_size']))):
                 print('')
                 if train_test_fold not in prm['train_test_fold']:
@@ -438,7 +441,7 @@ class ExperimentRun(metaclass=fe.utils_general.Singleton):
             self.data_dict["grid_frac"] = grid_f
             # self.data_dict['exp_size'] = int(n_data * exp_f)
             # self.data_dict['grid_size'] = int(n_data * grid_f)
-            constraint = fe.get_constraint(constraint_code=constraint_code, eps=turn_eps)
+            constraint = utils_prepare_data.get_constraint(constraint_code=constraint_code, eps=turn_eps)
 
             print(f"Processing: fraction {exp_f: <5}, sample {random_seed: ^10} turn_eps: {turn_eps: ^3}")
 
@@ -470,12 +473,12 @@ class ExperimentRun(metaclass=fe.utils_general.Singleton):
 
             # Expgrad on sample
             self.data_dict['model_name'] = f'expgrad_fracs{run_lp_suffix}'
-            expgrad_frac = fe.models.hybrid_models.ExponentiatedGradientPmf(estimator=deepcopy(base_model), run_linprog_step=run_linprog_step,
+            expgrad_frac = models.hybrid_models.ExponentiatedGradientPmf(estimator=deepcopy(base_model), run_linprog_step=run_linprog_step,
                                                                                       constraints=deepcopy(constraint), eps=turn_eps, nu=1e-6,
                                                                                       random_state=random_seed)
             metrics_res, time_exp_dict, time_eval_dict = self.fit_evaluate_model(expgrad_frac, exp_params,
                                                                                  eval_dataset_dict)
-            exp_data_dict = fe.utils_prepare_data.get_data_from_expgrad(expgrad_frac)
+            exp_data_dict = utils_prepare_data.get_data_from_expgrad(expgrad_frac)
             self.data_dict.update(**exp_data_dict)
             time_exp_dict['phase'] = 'expgrad_fracs'
             print(f"ExponentiatedGradient on subset done in {time_exp_dict['time']}")
@@ -487,14 +490,14 @@ class ExperimentRun(metaclass=fe.utils_general.Singleton):
             self.data_dict['model_name'] = f'hybrid_7{run_lp_suffix}'
             print(f"Running {self.data_dict['model_name']}")
             subsample_size = int(X_train_all.shape[0] * exp_f)
-            expgrad_subsample = fe.models.hybrid_models.ExponentiatedGradientPmf(estimator=deepcopy(base_model),
+            expgrad_subsample = models.hybrid_models.ExponentiatedGradientPmf(estimator=deepcopy(base_model),
                                                                                            run_linprog_step=run_linprog_step,
                                                                                            constraints=deepcopy(constraint), eps=turn_eps, nu=1e-6,
                                                                                            subsample=subsample_size, random_state=random_seed)
             metrics_res, time_exp_adaptive_dict, time_eval_dict = self.fit_evaluate_model(expgrad_subsample, all_params,
                                                                                           eval_dataset_dict)
             time_exp_adaptive_dict['phase'] = 'expgrad_fracs'
-            exp_data_dict = fe.utils_prepare_data.get_data_from_expgrad(expgrad_subsample)
+            exp_data_dict = utils_prepare_data.get_data_from_expgrad(expgrad_subsample)
             self.data_dict.update(**exp_data_dict)
             self.add_turn_results(metrics_res, [time_eval_dict, time_exp_adaptive_dict])
 
@@ -507,7 +510,7 @@ class ExperimentRun(metaclass=fe.utils_general.Singleton):
                 #################################################################################################
                 self.data_dict['model_name'] = f'{prefix}hybrid_5{run_lp_suffix}'
                 print(f"Running {self.data_dict['model_name']}")
-                model5 = fe.models.hybrid_models.Hybrid5(constraint=deepcopy(constraint), expgrad_frac=turn_expgrad, eps=turn_eps, )
+                model5 = models.hybrid_models.Hybrid5(constraint=deepcopy(constraint), expgrad_frac=turn_expgrad, eps=turn_eps, )
                 metrics_res, time_lp_dict, time_eval_dict = self.fit_evaluate_model(model5, all_params,
                                                                                     eval_dataset_dict)
                 time_lp_dict['phase'] = 'lin_prog'
@@ -535,7 +538,7 @@ class ExperimentRun(metaclass=fe.utils_general.Singleton):
                 self.data_dict['model_name'] = f'{prefix}hybrid_1{run_lp_suffix}'
                 print(f"Running {self.data_dict['model_name']}")
                 grid_subsample_size = int(X_train_all.shape[0] * grid_f)
-                model = fe.models.hybrid_models.Hybrid1(expgrad=turn_expgrad, eps=turn_eps, constraint=deepcopy(constraint),
+                model = models.hybrid_models.Hybrid1(expgrad=turn_expgrad, eps=turn_eps, constraint=deepcopy(constraint),
                                                                   base_model=deepcopy(base_model), grid_subsample=grid_subsample_size)
                 metrics_res, time_grid_dict, time_eval_dict = self.fit_evaluate_model(model, grid_params,
                                                                                       eval_dataset_dict)
@@ -550,7 +553,7 @@ class ExperimentRun(metaclass=fe.utils_general.Singleton):
                 #################################################################################################
                 self.data_dict['model_name'] = f'{prefix}hybrid_2{run_lp_suffix}'
                 print(f"Running {self.data_dict['model_name']}")
-                model = fe.models.hybrid_models.Hybrid2(expgrad=turn_expgrad, grid_search_frac=grid_search_frac, eps=turn_eps,
+                model = models.hybrid_models.Hybrid2(expgrad=turn_expgrad, grid_search_frac=grid_search_frac, eps=turn_eps,
                                                                   constraint=deepcopy(constraint))
                 metrics_res, _, time_eval_dict = self.fit_evaluate_model(model, grid_params, eval_dataset_dict)
                 self.add_turn_results(metrics_res, [time_eval_dict, turn_time_exp_dict, time_grid_dict])
@@ -560,7 +563,7 @@ class ExperimentRun(metaclass=fe.utils_general.Singleton):
                 #################################################################################################
                 self.data_dict['model_name'] = f'{prefix}hybrid_3{run_lp_suffix}'
                 print(f"Running {self.data_dict['model_name']}")
-                model = fe.models.hybrid_models.Hybrid3(grid_search_frac=grid_search_frac, eps=turn_eps, constraint=deepcopy(constraint))
+                model = models.hybrid_models.Hybrid3(grid_search_frac=grid_search_frac, eps=turn_eps, constraint=deepcopy(constraint))
                 metrics_res, time_lp3_dict, time_eval_dict = self.fit_evaluate_model(model, all_params,
                                                                                      eval_dataset_dict)
                 time_lp3_dict['phase'] = 'lin_prog'
@@ -572,7 +575,7 @@ class ExperimentRun(metaclass=fe.utils_general.Singleton):
                     #################################################################################################
                     self.data_dict['model_name'] = f'{prefix}hybrid_3_U{run_lp_suffix}'
                     print(f"Running {self.data_dict['model_name']}")
-                    model = fe.models.hybrid_models.Hybrid3(grid_search_frac=grid_search_frac, eps=turn_eps, constraint=deepcopy(constraint),
+                    model = models.hybrid_models.Hybrid3(grid_search_frac=grid_search_frac, eps=turn_eps, constraint=deepcopy(constraint),
                                                                       unconstrained_model=unconstrained_model)
                     metrics_res, time_lp3_dict, time_eval_dict = self.fit_evaluate_model(model, all_params,
                                                                                          eval_dataset_dict)
@@ -586,7 +589,7 @@ class ExperimentRun(metaclass=fe.utils_general.Singleton):
                 #################################################################################################
                 self.data_dict['model_name'] = f'{prefix}hybrid_4{run_lp_suffix}'
                 print(f"Running {self.data_dict['model_name']}")
-                model = fe.models.hybrid_models.Hybrid4(expgrad=turn_expgrad, grid_search_frac=grid_search_frac, eps=turn_eps,
+                model = models.hybrid_models.Hybrid4(expgrad=turn_expgrad, grid_search_frac=grid_search_frac, eps=turn_eps,
                                                                   constraint=deepcopy(constraint))
                 metrics_res, time_lp4_dict, time_eval_dict = self.fit_evaluate_model(model, all_params,
                                                                                      eval_dataset_dict)
@@ -598,7 +601,7 @@ class ExperimentRun(metaclass=fe.utils_general.Singleton):
                 #################################################################################################
                 self.data_dict['model_name'] = f'{prefix}hybrid_6{run_lp_suffix}'
                 print(f"Running {self.data_dict['model_name']}")
-                model = fe.models.hybrid_models.Hybrid3(add_exp_predictors=True, grid_search_frac=grid_search_frac, expgrad=turn_expgrad,
+                model = models.hybrid_models.Hybrid3(add_exp_predictors=True, grid_search_frac=grid_search_frac, expgrad=turn_expgrad,
                                                                   eps=turn_eps, constraint=deepcopy(constraint))
                 metrics_res, time_lp_dict, time_eval_dict = self.fit_evaluate_model(model, all_params,
                                                                                     eval_dataset_dict)
@@ -611,7 +614,7 @@ class ExperimentRun(metaclass=fe.utils_general.Singleton):
                     #################################################################################################
                     self.data_dict['model_name'] = f'{prefix}hybrid_6_U{run_lp_suffix}'
                     print(f"Running {self.data_dict['model_name']}")
-                    model = fe.models.hybrid_models.Hybrid3(add_exp_predictors=True, grid_search_frac=grid_search_frac, expgrad=turn_expgrad,
+                    model = models.hybrid_models.Hybrid3(add_exp_predictors=True, grid_search_frac=grid_search_frac, expgrad=turn_expgrad,
                                                                       eps=turn_eps, constraint=deepcopy(constraint),
                                                                       unconstrained_model=unconstrained_model)
                     metrics_res, time_lp_dict, time_eval_dict = self.fit_evaluate_model(model, all_params,
@@ -662,7 +665,7 @@ class ExperimentRun(metaclass=fe.utils_general.Singleton):
         # kwargs['constraint_code'] = constraint_code_to_name[kwargs['constraint_code']]
         if base_model is not None:
             kwargs['base_model'] = base_model
-        return fe.models.get_model(method_str=self.prm['model_name'], random_state=random_seed, datasets=self.datasets, **kwargs)
+        return models.get_model(method_str=self.prm['model_name'], random_state=random_seed, datasets=self.datasets, **kwargs)
 
     def run_unmitigated(self, train_data: list, test_data: list,
                         base_model_code, random_seed=0):
@@ -689,10 +692,10 @@ class ExperimentRun(metaclass=fe.utils_general.Singleton):
 
         for i, (turn_eps, n) in tqdm(list(enumerate(to_iter))):
             print('')
-            constraint = fe.utils_prepare_data.get_constraint(constraint_code=self.prm['constraint_code'], eps=turn_eps)
+            constraint = utils_prepare_data.get_constraint(constraint_code=self.prm['constraint_code'], eps=turn_eps)
             self.data_dict['eps'] = turn_eps
             base_model = self.load_base_model_with_best_param(base_model_code=base_model_code, random_state=random_seed)
-            expgrad_X_logistic = fe.models.hybrid_models.ExponentiatedGradientPmf(base_model,
+            expgrad_X_logistic = models.hybrid_models.ExponentiatedGradientPmf(base_model,
                                                                                             constraints=deepcopy(constraint),
                                                                                             eps=turn_eps, nu=1e-6,
                                                                                             run_linprog_step=run_linprog_step)
@@ -702,7 +705,7 @@ class ExperimentRun(metaclass=fe.utils_general.Singleton):
                                                                                  train_data,
                                                                                  eval_dataset_dict)
             time_exp_dict['phase'] = 'expgrad'
-            exp_data_dict = fe.utils_prepare_data.get_data_from_expgrad(expgrad_X_logistic)
+            exp_data_dict = utils_prepare_data.get_data_from_expgrad(expgrad_X_logistic)
             self.data_dict.update(**exp_data_dict)
             self.add_turn_results(metrics_res, [time_eval_dict, time_exp_dict])
 
@@ -726,7 +729,7 @@ class ExperimentRun(metaclass=fe.utils_general.Singleton):
         time_list = []
         time_dict = {}
         for phase, dataset_list in dataset_dict.items():
-            data_values = fe.utils_prepare_data.DataValuesSingleton()
+            data_values = utils_prepare_data.DataValuesSingleton()
             data_values.set_phase(phase)
 
             X, Y, S = dataset_list[:3]
@@ -808,7 +811,7 @@ class ExperimentRun(metaclass=fe.utils_general.Singleton):
             random_state = self.data_dict['random_seed']
         best_params = self.load_best_params(base_model_code, fraction=fraction,
                                             random_seed=0)  # todo change random seed. For simplicity in fine tuning it is 0.
-        model = fe.models.get_base_model(base_model_code=base_model_code, random_seed=random_state)
+        model = models.get_base_model(base_model_code=base_model_code, random_seed=random_state)
         model.set_params(**best_params)
         return model
 
@@ -834,7 +837,7 @@ class ExperimentRun(metaclass=fe.utils_general.Singleton):
                     sample_mask, _ = train_test_split(sample_mask, train_size=turn_frac, stratify=y,
                                                       random_state=random_seed, shuffle=True)
                 a = datetime.now()
-                clf = fe.models.finetune_model(base_model_code, pd.DataFrame(X).iloc[sample_mask],
+                clf = models.finetune_model(base_model_code, pd.DataFrame(X).iloc[sample_mask],
                                             pd.Series(y.ravel()).iloc[sample_mask],
                                             random_seed=random_seed)
                 b = datetime.now()

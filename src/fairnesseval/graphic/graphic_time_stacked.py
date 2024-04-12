@@ -2,7 +2,7 @@ import os
 
 import pandas as pd
 
-import utils_results_data
+from . import utils_results_data
 from .graphic_utility import plot_routine_other
 
 if __name__ == '__main__':

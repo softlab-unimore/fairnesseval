@@ -5,10 +5,10 @@ import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
 
-import utils_results_data, graphic_utility
+from . import utils_results_data, graphic_utility
 from .style_utility import StyleUtility
 from .utils_results_data import prepare_for_plot
-from graphic_utility import plot_all_df_subplots, PlotUtility, plot_demo_subplots
+from .graphic_utility import plot_all_df_subplots, PlotUtility, plot_demo_subplots
 
 if __name__ == '__main__':
     save = True
