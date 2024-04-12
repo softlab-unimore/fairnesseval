@@ -1,0 +1,4 @@
+# create a virtual environment called 'fe' with python version 3 using virtualenv
+python -m venv fe
+# activate the virtualenv in windows
+fe\Scripts\activate
