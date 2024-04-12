@@ -3,7 +3,7 @@ from sklearn.ensemble import GradientBoostingClassifier, HistGradientBoostingCla
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import RepeatedStratifiedKFold, GridSearchCV
 
-from models import wrappers
+from fairnesseval.models import wrappers
 
 
 def get_model_parameter_grid(base_model_code=None):

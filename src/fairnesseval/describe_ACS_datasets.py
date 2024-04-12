@@ -2,9 +2,9 @@ import os
 
 import pandas as pd
 
-import utils_experiment_parameters
-from utils_prepare_data import load_transform_ACS
-from run import ExperimentRun
+from fairnesseval import utils_experiment_parameters
+from fairnesseval.utils_prepare_data import load_transform_ACS
+from fairnesseval.run import ExperimentRun
 
 if __name__ == '__main__':
     er = ExperimentRun()
