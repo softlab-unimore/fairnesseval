@@ -11,9 +11,9 @@ import pandas as pd
 from matplotlib.markers import MarkerStyle
 from matplotlib.transforms import Affine2D
 
-from . import utils_results_data
-from .style_utility import StyleUtility, replace_words, replace_words_in_list
-from .utils_results_data import get_info, get_confidence_error, mean_confidence_interval, \
+from fairnesseval.graphic import utils_results_data
+from fairnesseval.graphic.style_utility import StyleUtility, replace_words, replace_words_in_list
+from fairnesseval.graphic.utils_results_data import get_info, get_confidence_error, mean_confidence_interval, \
     aggregate_phase_time, load_results, filter_results, seed_columns, prepare_for_plot, constraint_code_to_name
 import matplotlib as mpl
 
@@ -959,6 +959,7 @@ def plot_demo_subplots(all_df, model_list, chart_name, save, show=False, groupin
 
     first_columns = intersection_sorted(['model_code', 'dataset_name', 'train_fractions'], df_to_plot.columns)
     df_to_plot = df_to_plot[first_columns + difference_sorted(df_to_plot.columns, first_columns)]
+    os.makedirs(os.path.join(dir_path), exist_ok=True)
     df_to_plot.to_csv(os.path.join(dir_path, f'{chart_name}_VARY_{grouping_col}_metrics_mean_error.csv'))
     # if single_chart:
     #     plot_all_df_single_chart(pl_util, grouping_col, mean_error_df, model_set_name)

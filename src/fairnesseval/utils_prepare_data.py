@@ -14,7 +14,7 @@ import folktables
 from fairlearn.reductions import DemographicParity, EqualizedOdds, UtilityParity
 from folktables import ACSDataSource, generate_categories
 
-from .utils_general import Singleton
+from fairnesseval.utils_general import Singleton
 
 
 try:

@@ -356,7 +356,7 @@ def load_results_experiment_id(experiment_code_list, dataset_results_path):
         if cur_dir is None or not os.path.exists(cur_dir):
             cur_dir = os.path.join(dataset_results_path, experiment_code)
         if cur_dir is None or not os.path.exists(cur_dir):
-            logging.warning(f'{tmp_dir} does not exists. Skipped.')
+            logging.warning(f'{cur_dir} does not exists. Skipped.')
             continue
 
         for filepath in os.scandir(cur_dir):
@@ -435,7 +435,7 @@ def prepare_for_plot(df, grouping_col=None):
     groupby_col_list = np.intersect1d(groupby_col_list, time_aggregated_df.columns).tolist()
     time_aggregated_df.columns = time_aggregated_df.columns.str.replace('violation', 'DemographicParity')
     time_aggregated_df = time_aggregated_df.rename(columns=column_rename_map_before_plot)
-    new_numerical_cols = list(set(get_numerical_cols(time_aggregated_df) + groupby_col_list))
+    new_numerical_cols = get_numerical_cols(time_aggregated_df)
     # convert to numeric all columns from new_numerical_cols that are not already numeric
     time_aggregated_df[new_numerical_cols] = time_aggregated_df[new_numerical_cols].apply(pd.to_numeric, errors='ignore')
     # # all datasets

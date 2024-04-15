@@ -2,12 +2,12 @@ import os
 
 import numpy as np
 
-from . import utils_results_data
-from .graphic_utility import plot_demo_subplots
+from fairnesseval import utils_results_data
+from fairnesseval.graphic.graphic_utility import plot_demo_subplots
 
 
-
-def plot_function_B(chart_name, experiment_code_list, model_list, x_axis, y_axis_list, grouping_col=None, res_path='./demo_results', save=True, show=False, single_plot=True, dataset_list=None):
+def plot_function_B(chart_name, experiment_code_list, model_list, x_axis, y_axis_list, grouping_col=None,
+                    res_path='./demo_results', save=True, show=False, single_plot=True, dataset_list=None):
     dataset_results_path = os.path.join(res_path)
     base_plot_dir = os.path.join(res_path, 'plots')
     results_df = utils_results_data.load_results_experiment_id(experiment_code_list, dataset_results_path)
@@ -19,24 +19,26 @@ def plot_function_B(chart_name, experiment_code_list, model_list, x_axis, y_axis
         ascending=[True, True]).drop(columns=['model_sort'])
 
     return plot_demo_subplots(all_df, model_list=model_list, chart_name=chart_name, save=save, show=show,
-                        axis_to_plot=[[x_axis, y_axis] for y_axis in y_axis_list],
-                        sharex=True, result_path_name=dataset_results_path,
-                        single_plot=single_plot, grouping_col=grouping_col, params=dict(figsize=np.array([16,9])*.60))
-
+                              axis_to_plot=[[x_axis, y_axis] for y_axis in y_axis_list],
+                              sharex=True, result_path_name=dataset_results_path,
+                              single_plot=single_plot, grouping_col=grouping_col,
+                              params=dict(figsize=np.array([16, 9]) * .60))
 
 
 if __name__ == '__main__':
-    params = {'chart_name': 'demo.A', 'experiment_code_list': ('demo.A.1', 'demo.A.2', 'demo.A.3', 'demo.A.4', 'demo.A.5'), 'model_list': ('LogisticRegression', 'ZafarDI', 'Feld', 'ThresholdOptimizer', 'fairlearn'), 'x_axis': 'train_error', 'y_axis_list': ['train_DemographicParity'], 'grouping_col': None, 'dataset_list': ['compas']}
+    params = {'chart_name': 'demo.A', 'experiment_code_list': ('demo.default.test',),
+              'model_list': ('LogisticRegression',), 'x_axis': 'train_error', 'y_axis_list': ['train_EqualizedOdds'],
+              'grouping_col': None, 'dataset_list': ['adult']}
 
-    plot_function_B(**params, res_path='./demo_results', single_plot=False)
+    plot_function_B(**params, res_path='./demo_results', single_plot=False, show=True, save=False)
 
-    save = True
-    show = False
+    save = False
+    show = True
 
     experiment_code_list = [
         'demo.D.0r',
-        #'demo.C.1r',
-        ]
+        # 'demo.C.1r',
+    ]
 
     dataset_results_path = os.path.join("results")
     base_plot_dir = os.path.join('results', 'plots')
@@ -46,8 +48,8 @@ if __name__ == '__main__':
     model_list = [
         # 'unconstrained',
         'EXPGRAD',
-        #'ThresholdOptimizer', 'Calmon', 'Feld', 'ZafarDI', 'ZafarEO',
-        ]
+        # 'ThresholdOptimizer', 'Calmon', 'Feld', 'ZafarDI', 'ZafarEO',
+    ]
     sort_map = {name: i for i, name in enumerate(model_list)}
     all_df = results_df.assign(model_sort=results_df['model_code'].map(sort_map)).sort_values(
         ['dataset_name', 'base_model_code', 'constraint_code', 'model_sort'],
@@ -55,6 +57,6 @@ if __name__ == '__main__':
 
     x_axis = 'train_fractions'
     plot_demo_subplots(all_df, model_list=model_list, chart_name='D', save=save, show=show,
-                       axis_to_plot=[[x_axis, y_axis ] for y_axis in ['test_error', 'test_DemographicParity','time']],
+                       axis_to_plot=[[x_axis, y_axis] for y_axis in ['test_error', 'test_DemographicParity', 'time']],
                        sharex=False, result_path_name='demo',
-                        single_plot=True, grouping_col=x_axis)
+                       single_plot=True, grouping_col=x_axis)
