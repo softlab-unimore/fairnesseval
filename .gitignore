@@ -138,3 +138,8 @@ dmypy.json
 /datasets/datasets/ACSPublicCoverage/
 /run_experiments/cached_data/
 /run_experiments/results/
+/iframe_figures/
+/datasets/
+/old_to_delete/
+/run_experiments/
+/streamlit/

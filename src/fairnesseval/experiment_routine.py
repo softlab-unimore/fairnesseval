@@ -124,7 +124,8 @@ if __name__ == "__main__":
 
         # 'acsER_binB2.1r',
         # "demo.x.test",
-        "demo.default.test",
+        'new_experiment',
+        'demo.1.test',
         # 'demo.C.1r',
         # 'demo.C.1r',
         # testing
