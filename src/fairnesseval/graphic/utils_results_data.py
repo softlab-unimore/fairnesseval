@@ -11,8 +11,7 @@ import numpy as np
 import pandas as pd
 from scipy.stats import sem, t
 
-from fairnesseval import utils_experiment_parameters
-from fairnesseval.run import params_initials_map
+import fairnesseval.run
 
 seed_columns = ['random_seed', 'train_test_fold', 'train_test_seed']
 cols_to_synch = ['dataset_name', 'base_model_code', 'constraint_code', 'eps', 'train_test_seed', 'random_seed',
@@ -159,47 +158,6 @@ def filter_results(dirs_df, conf: dict = {}):
     df = pd.concat(dirs_df['df'].values)
     df = add_sigmod_metric(df)
     return df.reset_index(drop=True)
-
-
-def read_experiment_configuration(path):
-    config = dict(dir=path)
-    model = re.findall(r'(?P<model>^[a-zA-Z]+)_', path)[0]
-    g = re.findall(r'(?P<name>[a-z]+)\((?P<value>[a-zA-Z0-9\.]+)\)\_?', path)
-    config = {params_initials_map[x[0]]: x[1] for x in g}
-    config['model'] = model
-    return config
-
-
-def load_results(dataset_path, dataset_name, prefix='last', read_files=False):
-    base_dir = os.path.join(dataset_path, dataset_name)
-    path_list = pd.Series([x for x in os.scandir(base_dir) if x.is_dir() and x.name != 'tuned_models'])
-    if read_files:
-        path_list = pd.Series([x for x in os.scandir(base_dir) if x.is_file()])
-
-    config_list = []
-    for turn_dir in path_list:
-        config = read_experiment_configuration(turn_dir.name)
-        config['dataset_name'] = dataset_name
-        if read_files:
-            df = pd.read_csv(turn_dir)
-            df = add_missing_columns(df)
-            df = calculate_movign_param(turn_dir.path, df)
-        else:
-            df = load_results_single_directory(turn_dir.path, prefix=prefix)
-
-        models_with_gridsearch = df.query('phase == "grid_frac"')['model_code'].unique()
-        df.loc[~df['model_code'].isin(models_with_gridsearch), 'grid_frac'] = 0
-        if 'grid_fractions' in config.keys() and config['grid_fractions'] == '1.0':
-            # mask = ~df['model_code'].str.contains('|'.join(['expgrad_fracs', 'hybrid_7', 'unconstrained_']))
-            mask = df['model_code'].isin(models_with_gridsearch)
-            df.loc[mask, 'model_code'] = df.loc[mask, 'model_code'].str.replace('_gf_1', '') + '_gf_1'
-
-        for key, value in config.items():
-            if key not in df.columns:
-                df[key] = value
-        config['df'] = df
-        config_list.append(config)
-    return pd.DataFrame(config_list).fillna({'constraint_code': 'dp', 'train_test_split': '0'}).fillna('')
 
 
 def load_results_single_directory(base_dir, prefix='last'):
@@ -363,7 +321,7 @@ def load_results_experiment_id(experiment_code_list, dataset_results_path):
             if filepath.name.endswith('.csv'):
                 df = pd.read_csv(filepath)
 
-                current_config = utils_experiment_parameters.get_config_by_id(experiment_code)
+                current_config = fairnesseval.run.get_config_by_id(experiment_code)
                 df = prepare_data(df)
 
                 if current_config is not None and 'grid_fractions' in current_config.keys() and current_config['grid_fractions'] == [1]:

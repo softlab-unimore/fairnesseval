@@ -339,6 +339,7 @@ class ExponentiatedGradientPmf(ExponentiatedGradient):
     def __init__(self, base_model, constraint_code, eps, random_state, run_linprog_step=None, eta0=None,
                  method_str='fairlearn_full', datasets=None, **kwargs):
         self.method_str = method_str
+        self.random_state = random_state
         if eta0 is not None:
             kwargs['eta0'] = eta0
         if run_linprog_step is not None:
@@ -347,12 +348,12 @@ class ExponentiatedGradientPmf(ExponentiatedGradient):
             kwargs.pop('constraint_code')
         constraint = utils_prepare_data.get_constraint(constraint_code=constraint_code, eps=eps)
         super(ExponentiatedGradientPmf, self).__init__(base_model, constraints=copy.deepcopy(constraint), eps=eps,
-                                                       nu=1e-6, random_state=random_state, **kwargs)
+                                                       nu=1e-6, random_state=self.random_state,  **kwargs)
 
     def fit(self, X, y, sensitive_features, **kwargs):
         return super().fit(X, y, sensitive_features=sensitive_features, **kwargs)
 
-    def predict(self, X, random_state=None):
+    def predict(self, X):
         return self._pmf_predict(X)[:, 1]
 
     def get_stats_dict(self):
@@ -371,7 +372,7 @@ additional_models_dict = {
 }
 
 
-def create_wrapper(method_str, random_state=42, datasets=None,  **kwargs):
+def create_wrapper(method_str, random_state=42, datasets=None, **kwargs):
     model_class = additional_models_dict.get(method_str)
 
     class PersonalizedWrapper:

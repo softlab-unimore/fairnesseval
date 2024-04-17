@@ -15,7 +15,7 @@ from fairlearn.reductions import DemographicParity, EqualizedOdds, UtilityParity
 from folktables import ACSDataSource, generate_categories
 
 from fairnesseval.utils_general import Singleton
-
+import fairnesseval as fe
 
 try:
     from urllib.request import urlretrieve
@@ -205,6 +205,7 @@ def load_transform_ACS(dataset_str, states=None, return_acs_data=False):
     if loader_method.group in loader_method.features:  # remove sensitive feature from data
         loader_method.features.remove(loader_method.group)
     data_source = ACSDataSource(survey_year=2018, horizon='1-Year', survey='person', root_dir='cached_data')
+
     definition_df = data_source.get_definitions(download=True)
     categories = generate_categories(features=loader_method.features, definition_df=definition_df)
     acs_data = data_source.get_data(download=True,

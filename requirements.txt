@@ -1,5 +1,5 @@
 aif360>=0.5.0
-fairlearn>=0.9.0.dev0
+fairlearn @ git+https://github.com/MiroDudik/fairlearn.git@f11f99acd2ba724f9ef885973830d8f3390b0717#egg=fairlearn
 folktables>=0.0.12
 matplotlib>=3.7.1
 numpy>=1.22.4
@@ -11,6 +11,7 @@ seaborn>=0.11.2
 Send2Trash>=1.8.0
 setuptools>=67.6.1
 tqdm>=4.64.0
+cvxpy>=1.4.2
 dccp
 ipywidgets
 fair-classification @ git+https://github.com/baraldian/fair-classification-python3@master

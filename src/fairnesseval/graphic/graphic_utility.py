@@ -14,7 +14,7 @@ from matplotlib.transforms import Affine2D
 from fairnesseval.graphic import utils_results_data
 from fairnesseval.graphic.style_utility import StyleUtility, replace_words, replace_words_in_list
 from fairnesseval.graphic.utils_results_data import get_info, get_confidence_error, mean_confidence_interval, \
-    aggregate_phase_time, load_results, filter_results, seed_columns, prepare_for_plot, constraint_code_to_name
+    aggregate_phase_time, filter_results, seed_columns, prepare_for_plot, constraint_code_to_name
 import matplotlib as mpl
 
 from fairnesseval.utils_general import intersection_sorted, difference_sorted
@@ -966,99 +966,3 @@ def plot_demo_subplots(all_df, model_list, chart_name, save, show=False, groupin
     return pl_util.fig
 
 
-save = True
-show = False
-if __name__ == '__main__':
-    df_list = []
-
-    datasets = [
-        "ACSPublicCoverage",
-        "ACSEmployment",
-        "adult"
-    ]
-
-    dataset_results_path = os.path.join("../results", "fairlearn-2")
-    for dataset_name in datasets:
-        dirs_df = load_results(dataset_results_path, dataset_name)
-        df_list.append(dirs_df)
-    all_dirs_df = pd.concat(df_list)
-    all_results_df = pd.concat(all_dirs_df['df'].values)
-
-    df = all_results_df.copy()
-
-    # Evaluate delta error
-    df['delta_error'] = df['train_error'] - df['test_error']
-    curr_path = os.path.join(dataset_results_path, 'all_dataset_stats')
-    os.makedirs(curr_path, exist_ok=True)
-    df.groupby(['dataset_name', 'base_model_code']).agg({'delta_error': 'describe'}).to_csv(
-        os.path.join(curr_path, 'delta_error.csv'))
-
-    grid_chart_models = [
-        # 'expgrad_fracs_exp',
-        # 'hybrid_3_exp_gf_1',
-        'hybrid_5_exp',
-        'hybrid_3_exp',
-        'hybrid_7_exp',
-        'sub_hybrid_3_exp',  # sqrt
-        # 'sub_hybrid_5_exp',
-        'sub_hybrid_3_exp_gf_1',
-    ]
-
-    gs_analysis_df = all_results_df[all_results_df['model_code'].isin(grid_chart_models)]
-    gs_analysis_df = select_oracle_call_time(gs_analysis_df)
-    gs_analysis_df = utils_results_data.prepare_data(gs_analysis_df)
-
-    pl_util = PlotUtility(save=save, show=show)
-    plot_by_df(pl_util, gs_analysis_df, grid_chart_models, model_set_name='oracle_calls',
-               grouping_col='exp_frac')
-    plot_all_df_subplots(gs_analysis_df, model_list=grid_chart_models, chart_name='oracle_calls',
-                         grouping_col='exp_frac', save=save, show=show, sharey=False, single_chart=False)
-    # plot_gs_analysis(gs_analysis_df, grouping_col='exp_frac', pl_util=pl_util)
-
-    pl_util = PlotUtility(save=save, show=show, suffix='')
-
-    selected_model = ['sub_hybrid_6_exp_gf_1']
-    plot_all_df_subplots(all_results_df, model_list=selected_model, chart_name='baselines',
-                         grouping_col='exp_frac',
-                         save=save, show=show)
-
-    del df
-    for dataset_name in datasets:
-        for base_model_code in ['lr', 'lgbm']:
-            turn_results_all = all_dirs_df.query(f'dataset_name == "{dataset_name}" and '
-                                                 f'base_model_code == "{base_model_code}"')
-            hybrids_results = filter_results(turn_results_all, conf=dict(
-                exp_grid_ratio='sqrt',
-                states='',
-                exp_subset='True',
-                eps='0.01',
-                # run_linprog_step='True'
-            ))
-            other_results = filter_results(turn_results_all.query('model != "hybrids"'))
-
-            # all_model_df.query('frac > 0.04').pivot_table(index=['frac'], columns=['model_name', grouping_col],
-            #                          values=['train_violation', 'train_di', 'test_violation', 'test_di']).plot(
-            #     kind='scatter')
-
-            # plt.show()
-            if not hybrids_results.empty:
-                hybrids_results = hybrids_results[~hybrids_results['model_code'].str.contains('eps')]
-                suffix = f'_bmc({base_model_code})' if base_model_code != 'lr' else ''
-
-                plot_routine_performance_violation(pd.concat([hybrids_results, other_results]), dataset_name,
-                                                   save=save, show=show,
-                                                   suffix='ALL MODELS' + suffix)
-
-                # if base_model_code == 'lr': # take always max grid oracle times
-                df_only_oracle_calls = select_oracle_call_time(hybrids_results)
-                pl_util = PlotUtility(save=save, show=show, suffix='ONLY ORACLE CALLS' + suffix)
-                plot_cycle(df_only_oracle_calls, dataset_name, grid_chart_models, 'gs_comparison_', pl_util)
-                plot_routine_performance_violation(df_only_oracle_calls, dataset_name=dataset_name,
-                                                   save=save, show=show, )
-                # df_cut = df_cut.join(exp_time_df)
-
-                plot_routine_performance_violation(hybrids_results, dataset_name, save=save, show=show, suffix=suffix)
-                plot_routine_other(hybrids_results, save=save, show=show, suffix=suffix, dataset_name=dataset_name)
-                hybrids_results['dataset_name'] = dataset_name
-            else:
-                print(f'{dataset_name} - {base_model_code} MISSING')

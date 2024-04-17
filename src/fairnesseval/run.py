@@ -22,16 +22,18 @@ from sklearn.model_selection import train_test_split
 from tqdm import tqdm
 
 from fairnesseval import utils_experiment_parameters, utils_prepare_data, utils_general, metrics
+import fairnesseval.experiment_definitions
 from fairnesseval.models import models
+from fairnesseval.utils_experiment_parameters import experiment_configurations
 from fairnesseval.utils_general import Singleton
 
 
-def adjust_minus(x):
+def add_minus(x):
     return x if x.startswith('--') else '--' + x
 
 
 def to_arg(list_p, dict_p, original_argv):
-    res_string = [original_argv[0]] + [adjust_minus(x) for x in list_p]
+    res_string = [original_argv[0]] + [add_minus(x) for x in list_p]
     for key, value in dict_p.items():
         if isinstance(value, list) or isinstance(value, range):
             value = [str(x) for x in value]
@@ -41,34 +43,41 @@ def to_arg(list_p, dict_p, original_argv):
             value = [json.dumps(value)]
         else:
             value = [value]
-        res_string += [adjust_minus(key)] + value
+        res_string += [add_minus(key)] + value
         # res_string += [f'{key}={value}']
     return res_string
 
 
-def execute_experiment(list_p, dict_p, original_argv):
-    orig_argv = sys.argv.copy()
-    sys.argv = to_arg(list_p, dict_p, original_argv)
-    exp_run = ExperimentRun()
-    exp_run.run()
-    sys.argv = orig_argv
+def get_config_by_id(experiment_id, config_file_path=None):
+    """
+    Get the configuration of an experiment by its id.
+    When providing a config_file_path, it will be imported and configurations will be searched
+    in the experiment_definitions dictionary that should be defined in the config file.
+    When the experiment_id is not found in the configuration file, it will be searched in the experiment_definitions.
+    :param experiment_id:
+    :param config_file_path:
+    :return:
+    """
+    if config_file_path is not None:
+        config_file_path = os.path.abspath(config_file_path)
+        sys.path.append(os.path.dirname(config_file_path))
+        config_module = __import__(os.path.basename(config_file_path).split('.')[0])
+        experiment_definitions = config_module.experiment_definitions
+    else:
+        experiment_definitions = fairnesseval.experiment_definitions.experiment_definitions
+    exp_dict = None
+    for x in experiment_configurations:
+        if x['experiment_id'] == experiment_id:
+            exp_dict: dict = x
+            break
+    for x in experiment_definitions:
+        if x['experiment_id'] == experiment_id:
+            exp_dict: dict = x
+            break
+    return exp_dict
 
 
-params_initials_map = {'d': 'dataset_name', 'm': 'model_name', 'e': 'eps', 'ndp': 'num_data_points',
-                       'nf': 'num_features',
-                       't': 'theta', 'g': 'groups', 'gp': 'group_prob', 'yp': 'y_prob', 'sp': 'switch_pos',
-                       'sn': 'switch_neg', 'sv': 'sample_variations', 'ef': 'train_fractions', 'gf': 'grid_fractions',
-                       'egr': 'exp_grid_ratio', 'es': 'exp_subset', 's': 'states', 'rs': 'random_seed',
-                       'rls': 'run_linprog_step', 'rt': 'redo_tuning', 're': 'redo_exp', 'bmc': 'base_model_code',
-                       'cc': 'constraint_code', 'gri': 'grid_fractions', 'tts': 'train_test_split',
-                       'eps': 'eps', 'exp': 'exp_fraction'}
-
-
-def get_initials(s: str, split_char='_'):
-    return "".join([x[0] for x in re.split(split_char, s)])
-
-
-def launch_experiment_by_config(exp_dict:dict):
+def launch_experiment_by_config(exp_dict: dict):
     if exp_dict is None:
         raise ValueError(f"{exp_dict} is not a valid experiment id")
     experiment_id = exp_dict.get('experiment_id', 'default')
@@ -127,8 +136,10 @@ def launch_experiment_by_config(exp_dict:dict):
         if base_model_code is not None:
             kwargs['base_model_code'] = base_model_code
 
+        sys.argv = to_arg(args, kwargs, original_argv)
+        exp_run = ExperimentRun()
         try:
-            execute_experiment(args, kwargs, original_argv)
+            exp_run.run()
         except Exception as e:
             logging.info('****' * 10 + '\n' * 4 + f'Exception occured: {e}' + '\n' * 4 + '****' * 10)
             gettrace = getattr(sys, 'gettrace', None)
@@ -138,16 +149,16 @@ def launch_experiment_by_config(exp_dict:dict):
                 raise e
             else:
                 raise e
-
         turn_b = datetime.now()
         logging.info(
             f'Ended: {base_model_code}, dataset_name: {dataset_name}, model_name: {model_name} in:\n {turn_b - turn_a}')
     b = datetime.now()
     logging.info(f'Ended experiment. It took: {b - a}')
+    sys.argv = original_argv
 
 
-def launch_experiment_by_id(experiment_id: str):
-    exp_dict = utils_experiment_parameters.get_config_by_id(experiment_id)
+def launch_experiment_by_id(experiment_id: str, config_file_path=None):
+    exp_dict = get_config_by_id(experiment_id, config_file_path)
     return launch_experiment_by_config(exp_dict)
 
 
@@ -230,7 +241,6 @@ class ExperimentRun(metaclass=Singleton):
         # arg_parser.add_argument("--test_ratio", type=float, default=0.3)
         utils_general.mark_deprecated_help_strings(arg_parser)
         args = arg_parser.parse_args()
-        params_to_initials_map = {get_initials(key): key for key in args.__dict__.keys()}
         prm = args.__dict__.copy()
         if args.grid_fractions is not None:
             assert args.exp_grid_ratio is None, '--exp_grid_ratio must not be set if using --grid_fractions'
@@ -244,7 +254,6 @@ class ExperimentRun(metaclass=Singleton):
         # use custom results path when specified
         if prm['results_path'] is not None:
             self.base_result_dir = prm['results_path']
-
 
         # Moving model specific parameters into model_params
         if prm.get('expgrad_fractions') is not None:
@@ -262,15 +271,11 @@ class ExperimentRun(metaclass=Singleton):
         ### Load dataset
         self.dataset_str = prm['dataset_name']
 
-
         self.metrics_dict = metrics.get_metrics_dict(prm['metrics'])
-
-
 
     def run(self):
         self.get_arguments()
         prm = self.prm
-
 
         datasets = utils_prepare_data.get_dataset(self.dataset_str, prm=self.prm)
         datasets = utils_prepare_data.preprocess_dataset(datasets, prm=self.prm)
@@ -305,7 +310,6 @@ class ExperimentRun(metaclass=Singleton):
                     if not isinstance(value, (list, set, tuple)):
                         self.prm['model_params'][key] = [value]
 
-
                 params_to_iterate.update(**self.prm['model_params'])
                 params_keys = params_to_iterate.keys()
                 for values in itertools.product(*params_to_iterate.values()):
@@ -333,13 +337,13 @@ class ExperimentRun(metaclass=Singleton):
             except:
                 pass
             model_params = dict(grid_fractions=self.prm['grid_fractions'],
-                                            exp_subset=self.prm['exp_subset'],
-                                            exp_grid_ratio=self.prm['exp_grid_ratio'],
-                                            run_linprog_step=self.prm['run_linprog_step'],
-                                            random_seed=random_seed,
-                                            base_model_code=self.prm['base_model_code'],
-                                            constraint_code=self.prm['constraint_code'],
-                                            eps=self.data_dict.get('eps')) | model_params
+                                exp_subset=self.prm['exp_subset'],
+                                exp_grid_ratio=self.prm['exp_grid_ratio'],
+                                run_linprog_step=self.prm['run_linprog_step'],
+                                random_seed=random_seed,
+                                base_model_code=self.prm['base_model_code'],
+                                constraint_code=self.prm['constraint_code'],
+                                eps=self.data_dict.get('eps')) | model_params
             turn_results = self.run_hybrids(*datasets_divided, **model_params)
         elif 'unmitigated' == self.prm['model_name']:
             turn_results = self.run_unmitigated(*datasets_divided,
@@ -397,7 +401,7 @@ class ExperimentRun(metaclass=Singleton):
                 self.data_dict[t_key] = 'empty'
 
     def run_hybrids(self, train_data: list, test_data: list, eps,
-                    random_seed,  grid_fractions=[1], expgrad_fractions=[1], base_model_code='lr',
+                    random_seed, grid_fractions=[1], expgrad_fractions=[1], base_model_code='lr',
                     exp_subset=True, exp_grid_ratio=None, run_linprog_step=True,
                     constraint_code='dp', add_unconstrained=False):
         simplefilter(action='ignore', category=FutureWarning)
@@ -473,9 +477,11 @@ class ExperimentRun(metaclass=Singleton):
 
             # Expgrad on sample
             self.data_dict['model_name'] = f'expgrad_fracs{run_lp_suffix}'
-            expgrad_frac = models.hybrid_models.ExponentiatedGradientPmf(estimator=deepcopy(base_model), run_linprog_step=run_linprog_step,
-                                                                                      constraints=deepcopy(constraint), eps=turn_eps, nu=1e-6,
-                                                                                      random_state=random_seed)
+            expgrad_frac = models.hybrid_models.ExponentiatedGradientPmf(estimator=deepcopy(base_model),
+                                                                         run_linprog_step=run_linprog_step,
+                                                                         constraints=deepcopy(constraint), eps=turn_eps,
+                                                                         nu=1e-6,
+                                                                         random_state=random_seed)
             metrics_res, time_exp_dict, time_eval_dict = self.fit_evaluate_model(expgrad_frac, exp_params,
                                                                                  eval_dataset_dict)
             exp_data_dict = utils_prepare_data.get_data_from_expgrad(expgrad_frac)
@@ -491,9 +497,11 @@ class ExperimentRun(metaclass=Singleton):
             print(f"Running {self.data_dict['model_name']}")
             subsample_size = int(X_train_all.shape[0] * exp_f)
             expgrad_subsample = models.hybrid_models.ExponentiatedGradientPmf(estimator=deepcopy(base_model),
-                                                                                           run_linprog_step=run_linprog_step,
-                                                                                           constraints=deepcopy(constraint), eps=turn_eps, nu=1e-6,
-                                                                                           subsample=subsample_size, random_state=random_seed)
+                                                                              run_linprog_step=run_linprog_step,
+                                                                              constraints=deepcopy(constraint),
+                                                                              eps=turn_eps, nu=1e-6,
+                                                                              subsample=subsample_size,
+                                                                              random_state=random_seed)
             metrics_res, time_exp_adaptive_dict, time_eval_dict = self.fit_evaluate_model(expgrad_subsample, all_params,
                                                                                           eval_dataset_dict)
             time_exp_adaptive_dict['phase'] = 'expgrad_fracs'
@@ -510,7 +518,8 @@ class ExperimentRun(metaclass=Singleton):
                 #################################################################################################
                 self.data_dict['model_name'] = f'{prefix}hybrid_5{run_lp_suffix}'
                 print(f"Running {self.data_dict['model_name']}")
-                model5 = models.hybrid_models.Hybrid5(constraint=deepcopy(constraint), expgrad_frac=turn_expgrad, eps=turn_eps, )
+                model5 = models.hybrid_models.Hybrid5(constraint=deepcopy(constraint), expgrad_frac=turn_expgrad,
+                                                      eps=turn_eps, )
                 metrics_res, time_lp_dict, time_eval_dict = self.fit_evaluate_model(model5, all_params,
                                                                                     eval_dataset_dict)
                 time_lp_dict['phase'] = 'lin_prog'
@@ -538,8 +547,10 @@ class ExperimentRun(metaclass=Singleton):
                 self.data_dict['model_name'] = f'{prefix}hybrid_1{run_lp_suffix}'
                 print(f"Running {self.data_dict['model_name']}")
                 grid_subsample_size = int(X_train_all.shape[0] * grid_f)
-                model = models.hybrid_models.Hybrid1(expgrad=turn_expgrad, eps=turn_eps, constraint=deepcopy(constraint),
-                                                                  base_model=deepcopy(base_model), grid_subsample=grid_subsample_size)
+                model = models.hybrid_models.Hybrid1(expgrad=turn_expgrad, eps=turn_eps,
+                                                     constraint=deepcopy(constraint),
+                                                     base_model=deepcopy(base_model),
+                                                     grid_subsample=grid_subsample_size)
                 metrics_res, time_grid_dict, time_eval_dict = self.fit_evaluate_model(model, grid_params,
                                                                                       eval_dataset_dict)
                 time_grid_dict['phase'] = 'grid_frac'
@@ -553,8 +564,9 @@ class ExperimentRun(metaclass=Singleton):
                 #################################################################################################
                 self.data_dict['model_name'] = f'{prefix}hybrid_2{run_lp_suffix}'
                 print(f"Running {self.data_dict['model_name']}")
-                model = models.hybrid_models.Hybrid2(expgrad=turn_expgrad, grid_search_frac=grid_search_frac, eps=turn_eps,
-                                                                  constraint=deepcopy(constraint))
+                model = models.hybrid_models.Hybrid2(expgrad=turn_expgrad, grid_search_frac=grid_search_frac,
+                                                     eps=turn_eps,
+                                                     constraint=deepcopy(constraint))
                 metrics_res, _, time_eval_dict = self.fit_evaluate_model(model, grid_params, eval_dataset_dict)
                 self.add_turn_results(metrics_res, [time_eval_dict, turn_time_exp_dict, time_grid_dict])
 
@@ -563,7 +575,8 @@ class ExperimentRun(metaclass=Singleton):
                 #################################################################################################
                 self.data_dict['model_name'] = f'{prefix}hybrid_3{run_lp_suffix}'
                 print(f"Running {self.data_dict['model_name']}")
-                model = models.hybrid_models.Hybrid3(grid_search_frac=grid_search_frac, eps=turn_eps, constraint=deepcopy(constraint))
+                model = models.hybrid_models.Hybrid3(grid_search_frac=grid_search_frac, eps=turn_eps,
+                                                     constraint=deepcopy(constraint))
                 metrics_res, time_lp3_dict, time_eval_dict = self.fit_evaluate_model(model, all_params,
                                                                                      eval_dataset_dict)
                 time_lp3_dict['phase'] = 'lin_prog'
@@ -575,8 +588,9 @@ class ExperimentRun(metaclass=Singleton):
                     #################################################################################################
                     self.data_dict['model_name'] = f'{prefix}hybrid_3_U{run_lp_suffix}'
                     print(f"Running {self.data_dict['model_name']}")
-                    model = models.hybrid_models.Hybrid3(grid_search_frac=grid_search_frac, eps=turn_eps, constraint=deepcopy(constraint),
-                                                                      unconstrained_model=unconstrained_model)
+                    model = models.hybrid_models.Hybrid3(grid_search_frac=grid_search_frac, eps=turn_eps,
+                                                         constraint=deepcopy(constraint),
+                                                         unconstrained_model=unconstrained_model)
                     metrics_res, time_lp3_dict, time_eval_dict = self.fit_evaluate_model(model, all_params,
                                                                                          eval_dataset_dict)
                     time_lp3_dict['phase'] = 'lin_prog'
@@ -589,8 +603,9 @@ class ExperimentRun(metaclass=Singleton):
                 #################################################################################################
                 self.data_dict['model_name'] = f'{prefix}hybrid_4{run_lp_suffix}'
                 print(f"Running {self.data_dict['model_name']}")
-                model = models.hybrid_models.Hybrid4(expgrad=turn_expgrad, grid_search_frac=grid_search_frac, eps=turn_eps,
-                                                                  constraint=deepcopy(constraint))
+                model = models.hybrid_models.Hybrid4(expgrad=turn_expgrad, grid_search_frac=grid_search_frac,
+                                                     eps=turn_eps,
+                                                     constraint=deepcopy(constraint))
                 metrics_res, time_lp4_dict, time_eval_dict = self.fit_evaluate_model(model, all_params,
                                                                                      eval_dataset_dict)
                 time_lp4_dict['phase'] = 'lin_prog'
@@ -601,8 +616,9 @@ class ExperimentRun(metaclass=Singleton):
                 #################################################################################################
                 self.data_dict['model_name'] = f'{prefix}hybrid_6{run_lp_suffix}'
                 print(f"Running {self.data_dict['model_name']}")
-                model = models.hybrid_models.Hybrid3(add_exp_predictors=True, grid_search_frac=grid_search_frac, expgrad=turn_expgrad,
-                                                                  eps=turn_eps, constraint=deepcopy(constraint))
+                model = models.hybrid_models.Hybrid3(add_exp_predictors=True, grid_search_frac=grid_search_frac,
+                                                     expgrad=turn_expgrad,
+                                                     eps=turn_eps, constraint=deepcopy(constraint))
                 metrics_res, time_lp_dict, time_eval_dict = self.fit_evaluate_model(model, all_params,
                                                                                     eval_dataset_dict)
                 time_lp_dict['phase'] = 'lin_prog'
@@ -614,9 +630,10 @@ class ExperimentRun(metaclass=Singleton):
                     #################################################################################################
                     self.data_dict['model_name'] = f'{prefix}hybrid_6_U{run_lp_suffix}'
                     print(f"Running {self.data_dict['model_name']}")
-                    model = models.hybrid_models.Hybrid3(add_exp_predictors=True, grid_search_frac=grid_search_frac, expgrad=turn_expgrad,
-                                                                      eps=turn_eps, constraint=deepcopy(constraint),
-                                                                      unconstrained_model=unconstrained_model)
+                    model = models.hybrid_models.Hybrid3(add_exp_predictors=True, grid_search_frac=grid_search_frac,
+                                                         expgrad=turn_expgrad,
+                                                         eps=turn_eps, constraint=deepcopy(constraint),
+                                                         unconstrained_model=unconstrained_model)
                     metrics_res, time_lp_dict, time_eval_dict = self.fit_evaluate_model(model, all_params,
                                                                                         eval_dataset_dict)
                     time_lp_dict['phase'] = 'lin_prog'
@@ -665,13 +682,14 @@ class ExperimentRun(metaclass=Singleton):
         # kwargs['constraint_code'] = constraint_code_to_name[kwargs['constraint_code']]
         if base_model is not None:
             kwargs['base_model'] = base_model
-        return models.get_model(method_str=self.prm['model_name'], random_state=random_seed, datasets=self.datasets, **kwargs)
+        return models.get_model(method_str=self.prm['model_name'], random_state=random_seed, datasets=self.datasets,
+                                **kwargs)
 
     def run_unmitigated(self, train_data: list, test_data: list,
                         base_model_code, random_seed=0):
         self.turn_results = []
         eval_dataset_dict = {'train': train_data,
-                                    'test': test_data}
+                             'test': test_data}
         base_model = self.load_base_model_with_best_param(base_model_code=base_model_code, random_state=random_seed)
         metrics_res, time_exp_dict, time_eval_dict = self.fit_evaluate_model(base_model, train_data,
                                                                              eval_dataset_dict)
@@ -696,9 +714,9 @@ class ExperimentRun(metaclass=Singleton):
             self.data_dict['eps'] = turn_eps
             base_model = self.load_base_model_with_best_param(base_model_code=base_model_code, random_state=random_seed)
             expgrad_X_logistic = models.hybrid_models.ExponentiatedGradientPmf(base_model,
-                                                                                            constraints=deepcopy(constraint),
-                                                                                            eps=turn_eps, nu=1e-6,
-                                                                                            run_linprog_step=run_linprog_step)
+                                                                               constraints=deepcopy(constraint),
+                                                                               eps=turn_eps, nu=1e-6,
+                                                                               run_linprog_step=run_linprog_step)
             print("Fitting Exponentiated Gradient on full dataset...")
             train_data = dict(X=X_train_all, y=y_train_all, sensitive_features=A_train_all)
             metrics_res, time_exp_dict, time_eval_dict = self.fit_evaluate_model(expgrad_X_logistic,
