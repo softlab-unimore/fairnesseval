@@ -234,7 +234,6 @@ class PlotUtility():
         label_params = self.get_all_params(model_code)
         label_params['label'] += label_suffix
 
-        # todo plot axhline or axvline if a value is nan
         if len(set(y)) == 1 or pd.isna(y).all():
             if pd.isna(x).all():
                 for key in ['fmt', 'elinewidth']:

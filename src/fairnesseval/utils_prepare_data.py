@@ -288,14 +288,13 @@ def get_dataset(dataset_str, prm=None):
         raise_dataset_name_error(dataset_str)
 
 
-
-
 def white_alone(datasets):
     data_values = DataValuesSingleton()
     data_values.set_original_sensitive_attr(datasets[2])
     datasets = list(datasets)
     datasets[2] = datasets[2].map({1: 1, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0, 8: 0, 9: 0})
     return datasets
+
 
 def binary_split_by_mean_y(datasets):
     data_values = DataValuesSingleton()
@@ -304,45 +303,33 @@ def binary_split_by_mean_y(datasets):
     mean_y = y.mean()
     mean_by_group = y.groupby(A).mean()
     priviliged = mean_by_group[mean_by_group > mean_y].index
-    group_map = {x:1 if x in priviliged else 0 for x in mean_by_group.index}
+    group_map = {x: 1 if x in priviliged else 0 for x in mean_by_group.index}
     datasets = list(datasets)
     datasets[2] = datasets[2].map(group_map)
     return datasets
 
-preprocessing_function_map = dict(conversion_to_binary_sensitive_attribute=white_alone,
-                                  binary_split_by_mean_y=binary_split_by_mean_y,
-                                  default=lambda x: x)
+
+preprocessing_function_map = {
+    'conversion_to_binary_sensitive_attribute': white_alone,
+    'binary_split_by_mean_y': binary_split_by_mean_y,
+    'default': lambda x: x
+}
 
 
 def preprocess_dataset(datasets, prm):
     return preprocessing_function_map[prm['preprocessing']](datasets)
 
 
-def split_dataset_generator(dataset_str, datasets, train_test_seed, split_strategy, test_size):
 
-    # if dataset_str in utils_experiment.sigmod_datasets + utils_experiment.sigmod_datasets_aif360:
-    #     convert_to_df_aif360(datasets[3])
-    #     logging.warning('split_strategy has no effect when using aif 360 datasets ')
-    #     dataset_dict = split_dataset_aif360(datasets[3], train_test_seed=train_test_seed)
-    #     # if dataset_str in utils_experiment.sigmod_datasets:
-    #     yield dataset_dict['train_df'], dataset_dict['test_df']
-    #     # elif dataset_str in utils_experiment.sigmod_datasets_aif360:
-    #     #     dataset_dict = split_dataset_aif360(datasets[3], train_test_seed=train_test_seed)
-    #     #     dataset_dict['train_df'] += tuple([dataset_dict['aif360_train']])
-    #     #     dataset_dict['test_df'] += tuple([dataset_dict['aif360_test']])
-    #     #     yield dataset_dict['train_df'], dataset_dict['test_df']
-    #     # train_data = dict(zip(['X', 'y', 'A'], dataset_dict['train_df']))
-    #     # train_data['X'] = dataset_dict['aif360_train']
-    #     # test_data = dict(zip(['X', 'y', 'A'], dataset_dict['train_df']))
-    #     # test_data['X'] = dataset_dict['aif360_test']
-    #     # yield list(train_data.values()), list(test_data.values())
-    # elif dataset_str in utils_experiment.dataset_names:
-    data_values = DataValuesSingleton()
-    if split_strategy == 'StratifiedKFold':
-        skf = StratifiedKFold(n_splits=3, shuffle=True, random_state=train_test_seed) # todo add to prm the number of splits
+def StratifiedKFold_on_original_attr(datasets, train_test_seed, test_size, n_splits=3):
+        data_values = DataValuesSingleton()
+        skf = StratifiedKFold(n_splits=n_splits, shuffle=True,
+                              random_state=train_test_seed)  # todo add to prm the number of splits
         X, y, A = datasets[:3]
         to_stratify = pd.Series(A).astype(str) + '_' + pd.Series(y).astype(str)
         if data_values.original_sensitive_attr is not None:
+            # When using a processed sensitive attribute the stratification is still
+            # done on the original sensitive attribute
             A_orig = data_values.original_sensitive_attr
             to_stratify = pd.Series(A_orig).astype(str) + '_' + pd.Series(y).astype(str)
         for train_index, test_index in skf.split(X, to_stratify):
@@ -351,12 +338,14 @@ def split_dataset_generator(dataset_str, datasets, train_test_seed, split_strate
                 datasets_divided.append([df.iloc[turn_index] for df in [X, y, A]])
             data_values.set_train_test_index(train_index=train_index, test_index=test_index)
             yield datasets_divided
-    elif split_strategy == 'stratified_train_test_split':
+
+def stratified_train_test_split_on_original_attr(datasets, train_test_seed, test_size):
+        data_values = DataValuesSingleton()
         X, y, A = datasets[:3]
         to_stratify = pd.concat([A, y], axis=1).astype('category').apply(lambda x: '_'.join(x.astype(str)), axis=1)
         sample_mask = np.arange(X.shape[0])
         train_index, test_index = train_test_split(sample_mask, test_size=test_size, stratify=to_stratify,
-                                          random_state=train_test_seed, shuffle=True)
+                                                   random_state=train_test_seed, shuffle=True)
 
         datasets_divided = []
         for turn_index in [train_index, test_index]:
@@ -364,8 +353,6 @@ def split_dataset_generator(dataset_str, datasets, train_test_seed, split_strate
         data_values.train_index = train_index
         data_values.test_index = test_index
         yield datasets_divided
-
-
 
 def split_X_y_A(df: pd.DataFrame):
     return [df.iloc[:, :-2], df.iloc[:, -2], df.iloc[:, -1]]
@@ -390,7 +377,7 @@ class DataValuesSingleton(metaclass=Singleton):
     phase = None
 
     def set_phase(self, phase):
-        #if phase not in ['train', 'test']:
+        # if phase not in ['train', 'test']:
         #    raise Exception(f'phase {phase} not allowed.')
         self.phase = phase
 
@@ -408,3 +395,25 @@ class DataValuesSingleton(metaclass=Singleton):
 
     def set_original_sensitive_attr(self, original_sensitive_attr):
         self.original_sensitive_attr = deepcopy(original_sensitive_attr)
+
+
+
+# metrics_code_map = {
+#     'default': default_metrics_dict,
+#     'conversion_to_binary_sensitive_attribute': default_metrics_dict | {
+#         'violation_orig': convert_metric_to_use_original_sensitive(getViolation),
+#         'EqualizedOdds_orig': convert_metric_to_use_original_sensitive(getEO),
+#         'di_orig': convert_metric_to_use_original_sensitive(di),
+#         'TPRB_orig': convert_metric_to_use_original_sensitive(TPRB),
+#         'TNRB_orig': convert_metric_to_use_original_sensitive(TNRB),
+#     }
+# }
+
+split_strategy_map = {
+    'stratified_train_test_split': stratified_train_test_split_on_original_attr,
+    'StratifiedKFold': StratifiedKFold_on_original_attr,
+}
+
+
+def split_dataset_generator(dataset_str, datasets, train_test_seed, split_strategy, test_size):
+    return split_strategy_map[split_strategy](datasets, train_test_seed, test_size)

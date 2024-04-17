@@ -238,7 +238,7 @@ class ZafarEO:
     def __init__(self, method_str, base_model, datasets, eps=None, constraint_code=None, random_state=None):
         seed(random_state)  # set the random seed so that the random permutations can be reproduced again
         np.random.seed(random_state)
-        X, y, A = datasets[:3]  # todo fix name of A to race
+        X, y, A = datasets[:3]
         self.method_str = method_str
         """ Now classify such that we optimize for accuracy while achieving perfect fairness """
         # sensitive_attrs_to_cov_thresh = {A.name: {group: {0: 0, 1: 0} for group in A.unique()}}  # zero covariance threshold, means try to get the fairest solution

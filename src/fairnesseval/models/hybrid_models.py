@@ -103,7 +103,7 @@ class Hybrid5(BaseEstimator):
         # self.expgrad_predictors = expgrad_frac._predictors  # fairlearn==0.4
         self.concat_predictors()
         # In hybrid 5, lin program is done on top of expgrad partial.
-        # a = datetime.now() # TODO
+        # a = datetime.now()
         errors, violations = self.get_error_violation(X, y, sensitive_features, self.predictors)
         self.weights = solve_linprog(errors=errors, gammas=violations, eps=self.eps, nu=1e-6,
                                      pred=self.predictors)

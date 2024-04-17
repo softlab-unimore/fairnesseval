@@ -23,6 +23,7 @@ from tqdm import tqdm
 
 from fairnesseval import utils_experiment_parameters, utils_prepare_data, utils_general, metrics
 import fairnesseval.experiment_definitions
+from fairnesseval.metrics import metrics_code_map
 from fairnesseval.models import models
 from fairnesseval.utils_experiment_parameters import experiment_configurations
 from fairnesseval.utils_general import Singleton
@@ -178,67 +179,72 @@ class ExperimentRun(metaclass=Singleton):
         self.time_str = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 
     def get_arguments(self):
-
-        # TODO move specific parameters of expgrad from explicit arguments to model_params. [eps, train_fractions, grid_fractions, exp_grid_ratio, exp_subset, constraint_code]
-        # TODO separate in a different function the syntetich data generation
         simplefilter(action='ignore', category=FutureWarning)
         arg_parser = ArgumentParser()
-        arg_parser.add_argument('--dataset_name', nargs='+', required=True)
-        arg_parser.add_argument('--model_name', nargs='+', required=True)
-        arg_parser.add_argument('--results_path', default=None)
-
-        arg_parser.add_argument("--metrics", choices=['default', 'conversion_to_binary_sensitive_attribute'],
-                                default='default')
-        arg_parser.add_argument("--preprocessing", choices=utils_prepare_data.preprocessing_function_map.keys(),
-                                default='default')
-        # For Fairlearn and Hybrids
-        arg_parser.add_argument("--eps", nargs='+', type=float, default=[None])
-        arg_parser.add_argument("--constraint_code", choices=['dp', 'eo'], default=None)
-        # For hybrid methods
-        arg_parser.add_argument("--train_fractions", nargs='+', type=float, default=[1])
-        arg_parser.add_argument("--expgrad_fractions", nargs='+', type=float, default=None)
-        arg_parser.add_argument("--grid_fractions", nargs='+', type=float, default=None)
-        arg_parser.add_argument("--exp_grid_ratio", choices=['sqrt', None], default=None, nargs='+')
-        arg_parser.add_argument("--no_exp_subset", action="store_false", default=True, dest='exp_subset')
-        # Others
-        arg_parser.add_argument("--no_save", default=True, dest='save', action='store_false')
-        arg_parser.add_argument("--random_seeds", help='random_seeds for everything. (aka random_state) '
-                                                       'For models it\'s summed to train_test_fold when cross validating ',
+        arg_parser.add_argument("--experiment_id", default=None, help='experiment_id of the experiment to run.')
+        arg_parser.add_argument('--dataset_name', nargs='+', required=True, help='list of dataset names.')
+        arg_parser.add_argument('--model_name', nargs='+', required=True, help='list of model names.')
+        arg_parser.add_argument('--results_path', default=None, help='path to save results. default at results/hostname')
+        arg_parser.add_argument("--train_fractions", nargs='+', type=float, default=[1],
+                                help='list of fractions to be used for training')
+        arg_parser.add_argument("--random_seeds", help='list of random seeds to use. (aka random_state) '
+                                                       'All random seeds set are related to this random seed.'
+                                                       'For each random_seed a new train_test split is done.',
                                 default=0,
                                 nargs='+', type=int)
-        arg_parser.add_argument('--train_test_seeds', help='seeds for train test split', default=None, nargs='+',
-                                type=int)
-        arg_parser.add_argument('--test_size',
-                                help='when splitting without cross validation train_test_split test_size', default=0.3,
-                                type=float)
-        arg_parser.add_argument('--split_strategy', help='splitting strategy. default: ',
-                                choices=['StratifiedKFold', 'stratified_train_test_split', None],
+
+        available_metric_names = metrics_code_map.keys()
+        arg_parser.add_argument("--metrics", choices=available_metric_names,
+                                default='default',
+                                help=f'metric set to be used for evaluation. Available metric set name are {available_metric_names}.'
+                                     f'The use custom metrics add a new key to metrics_code_map in fairnesseval.metrics.py.')
+
+        available_preprocessing = utils_prepare_data.preprocessing_function_map.keys()
+        arg_parser.add_argument("--preprocessing", choices=available_preprocessing,
+                                help=f'preprocessing function to be used. Available preprocessing functions are {available_preprocessing}'
+                                     f'To add a new preprocessing function add a new key to preprocessing_function_map in fairnesseval.utils_prepare_data.py.',
+                                default='default')
+
+        available_split_strategies = utils_prepare_data.split_strategy_map.keys()
+        arg_parser.add_argument('--split_strategy', help=f'splitting strategy. '
+                                                         f'Available split strategies are: {available_split_strategies}',
+                                choices=available_split_strategies,
                                 default='StratifiedKFold', type=str)
-        arg_parser.add_argument('--train_test_fold', help='train_test_fold to run with k-fold', default=[0, 1, 2],
+        arg_parser.add_argument('--train_test_fold', help='list of train_test_fold to run with k-fold',
+                                default=[0, 1, 2],
                                 nargs='+',
                                 type=int)
-        arg_parser.add_argument("--no_run_linprog_step", default=True, dest='run_linprog_step', action='store_false')
-        arg_parser.add_argument("--redo_tuning", action="store_true", default=False)
-        arg_parser.add_argument("--redo_exp", action="store_true", default=False)
-        arg_parser.add_argument("--states", nargs='+', type=str)
-        arg_parser.add_argument("--base_model_code", default=None)
-        arg_parser.add_argument("--experiment_id", default=None)
         arg_parser.add_argument("--model_params", default={}, type=json.loads,
                                 help='dict with key, value pairs of model hyper parameter names (key) and list of values to'
                                      ' be iterated (values). When multiple list of parameters are specified the cross'
                                      ' product is used to generate all the combinations to test.')
 
-        arg_parser.add_argument("--debug", action="store_true", default=False)
-        # For synthetic data
-        arg_parser.add_argument("--num_data_points", type=int)
-        arg_parser.add_argument("--num_features", type=int)
-        arg_parser.add_argument("--theta", type=float, default=0.5)
-        arg_parser.add_argument('--groups')
-        arg_parser.add_argument('--group_prob')
-        arg_parser.add_argument('--y_prob')
-        arg_parser.add_argument('--switch_pos')
-        arg_parser.add_argument('--switch_neg')
-        # arg_parser.add_argument("--test_ratio", type=float, default=0.3)
+        arg_parser.add_argument("--debug", action="store_true", default=False,
+                                help='debug mode if set, the program will stop at the first exception.')
+
+        arg_parser.add_argument("--states", nargs='+', type=str)
+
+
+        # For Fairlearn and Hybrids # todo remove
+        arg_parser.add_argument("--eps", nargs='+', type=float, default=None)
+        arg_parser.add_argument("--constraint_code", choices=['dp', 'eo'], default=None)
+        # For hybrid methods
+        arg_parser.add_argument("--expgrad_fractions", nargs='+', type=float, default=None)
+        arg_parser.add_argument("--grid_fractions", nargs='+', type=float, default=None)
+        arg_parser.add_argument("--exp_grid_ratio", choices=['sqrt', None], default=None, nargs='+')
+        arg_parser.add_argument("--no_exp_subset", action="store_false", default=None, dest='exp_subset')
+        arg_parser.add_argument("--no_run_linprog_step", default=None, dest='run_linprog_step', action='store_false')
+        arg_parser.add_argument("--base_model_code", default=None)
+
+        # Others
+        arg_parser.add_argument('--train_test_seeds', help='seeds for train test split', default=None, nargs='+',
+                                type=int)
+        arg_parser.add_argument('--test_size',
+                                help='when splitting without cross validation train_test_split test_size', default=0.3,
+                                type=float)
+
+        arg_parser.add_argument("--redo_tuning", action="store_true", default=False)
+
         utils_general.mark_deprecated_help_strings(arg_parser)
         args = arg_parser.parse_args()
         prm = args.__dict__.copy()
@@ -256,13 +262,14 @@ class ExperimentRun(metaclass=Singleton):
             self.base_result_dir = prm['results_path']
 
         # Moving model specific parameters into model_params
-        if prm.get('expgrad_fractions') is not None:
-            prm['model_params']['expgrad_fractions'] = prm['expgrad_fractions']
-            del prm['expgrad_fractions']
-        if prm.get('constraint_code') is not None:
-            prm['model_params']['constraint_code'] = [prm['constraint_code']]
-            del prm['constraint_code']
-        deprecated_args = ['train_test_seeds', 'constraint_code', 'expgrad_fractions', 'grid_fractions']
+        model_specific_params = ['eps', 'constraint_code', 'expgrad_fractions', 'grid_fractions', 'exp_grid_ratio',
+                                 'exp_subset', 'run_linprog_step', 'base_model_code']
+        for key in model_specific_params:
+            if prm.get(key) is not None:
+                prm['model_params'][key] = prm[key]
+                del prm[key]
+
+        other_deprecated_args = ['train_test_seeds']
 
         prm['model_name'] = prm['model_name'][0]
         prm['dataset_name'] = prm['dataset_name'][0]
@@ -303,14 +310,13 @@ class ExperimentRun(metaclass=Singleton):
                 self.data_dict['train_test_seed'] = train_test_seed
                 self.data_dict['train_test_fold'] = train_test_fold
                 self.data_dict['random_seed'] = random_seed
-                params_to_iterate = {'eps': self.prm['eps'],
-                                     'train_fractions': self.prm['train_fractions'], }
+                params_to_iterate = {'train_fractions': self.prm['train_fractions'], }
                 # check that all values of model_params hasy type list or set or tuple, if not convert to list
                 for key, value in self.prm['model_params'].items():
                     if not isinstance(value, (list, set, tuple)):
                         self.prm['model_params'][key] = [value]
 
-                params_to_iterate.update(**self.prm['model_params'])
+                params_to_iterate = params_to_iterate | self.prm['model_params']
                 params_keys = params_to_iterate.keys()
                 for values in itertools.product(*params_to_iterate.values()):
                     all_params = dict(zip(params_keys, values))
@@ -363,9 +369,6 @@ class ExperimentRun(metaclass=Singleton):
         self.save_result(df=results_df)
 
     def save_result(self, df, name=None, additional_dir=None):
-        if self.prm['save'] is not None and self.prm['save'] == 'False':
-            print('Not saving...')
-            return 0
         assert self.dataset_str is not None
         if self.prm['experiment_id'] is not None and name is None:
             name = self.prm['experiment_id']

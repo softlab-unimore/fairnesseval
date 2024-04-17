@@ -17,17 +17,20 @@ def divide_non_0(a, b):
 def get_metric_function(metric_f):
     def f(X, Y, S, y_pred):
         return metric_f(y_true=Y, y_pred=y_pred >= .5, zero_division=0)
+
     return f
+
 
 def convert_metric_to_use_original_sensitive(metric_f):
     def f(X, Y, S, predict_method):
-        data_values= utils_prepare_data.DataValuesSingleton()
+        data_values = utils_prepare_data.DataValuesSingleton()
         s_orig = data_values.get_current_original_sensitive_attr()
         params = inspect.signature(metric_f).parameters.keys()
         if 'predict_method' in params:
             return metric_f(X, Y, s_orig, predict_method=predict_method)
         elif 'y_pred' in params:
             return metric_f(X, Y, s_orig, y_pred=predict_method(X))
+
     return f
 
 
@@ -100,16 +103,18 @@ default_metrics_dict = {'error': getError,
                         'recall': get_metric_function(recall_score)
                         }
 
-metrics_code_map = dict(
-    default=default_metrics_dict,
-    conversion_to_binary_sensitive_attribute=default_metrics_dict | {
+metrics_code_map = {
+    'default': default_metrics_dict,
+    'conversion_to_binary_sensitive_attribute': default_metrics_dict | {
         'violation_orig': convert_metric_to_use_original_sensitive(getViolation),
         'EqualizedOdds_orig': convert_metric_to_use_original_sensitive(getEO),
         'di_orig': convert_metric_to_use_original_sensitive(di),
         'TPRB_orig': convert_metric_to_use_original_sensitive(TPRB),
         'TNRB_orig': convert_metric_to_use_original_sensitive(TNRB),
     }
-)
+}
+
+
 # Metrics function may follow one of these 2 interfaces.
 # f(X, Y, S, predict_method)
 # or
