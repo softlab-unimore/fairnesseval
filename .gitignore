@@ -143,3 +143,4 @@ dmypy.json
 /old_to_delete/
 /run_experiments/
 /streamlit/
+/src/fairnesseval/non_synched_files/
