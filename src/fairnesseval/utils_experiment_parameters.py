@@ -1,6 +1,5 @@
 import itertools
 import json
-from typing import List
 
 import pandas as pd
 
@@ -50,28 +49,6 @@ eta_params_restricted_v2 = json.dumps({'eta0': [2.0], 'run_linprog_step': [False
                                        'max_iter': [100]})
 
 experiment_configurations = [
-    {'experiment_id': 'demo.0.test', 'dataset_names': ('adult_sigmod',), 'model_names': ('LogisticRegression',),
-     'random_seeds': [0], 'results_path': './demo_results'},
-    {"experiment_id": "demo.2.test",
-     "dataset_names": ["compas",
-                       "german"],
-     "model_names": ["LogisticRegression"],
-     "random_seeds": [0],
-     "model_params": {"eps": 0.005,
-                      "constraint_code": "dp",
-                      "base_model_code": ["lr"]},
-     "train_fractions": [0.016, 0.063, 0.251, 1.0],
-     "results_path": "./demo_results",
-     "params": ["--debug"]},
-    {"experiment_id": "demo.1.test",
-     'dataset_names': sigmod_datasets,
-     "model_names": ["fairlearn"],
-     "random_seeds": [0],
-     "model_params": {"eps": [0.001, 0.005, 0.01, 0.02, 0.05, 0.1, 0.15],
-                      "constraint_code": "dp", 'base_model_code': 'lr'},
-     'results_path': 'demo_results'},
-    {"experiment_id": "demo.x.test", 'dataset_names': ('adult_sigmod',), 'model_names': ('LogisticRegression',),
-     'random_seeds': [0]},
     {'experiment_id': 's_h_1.0.TEST',
      'dataset_names': sigmod_datasets,
      'model_names': ['hybrids'],
@@ -1284,10 +1261,3 @@ df['exp_name'] = ''
 
 # df.pivot(index=['vary'], columns=cols_to_unstack, values=['state', 'exp_name'])
 # df.to_csv('run_experiments/experiment_matrix_state.csv')
-def get_config_by_id(experiment_id):
-    exp_dict = None
-    for x in experiment_configurations:
-        if x['experiment_id'] == experiment_id:
-            exp_dict: dict = x
-            break
-    return exp_dict
