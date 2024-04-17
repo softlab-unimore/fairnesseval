@@ -1,91 +1,136 @@
 # Fairness Evaluation and Testing Repository
 
-## Introduction
+Automated decision-making systems can potentially introduce biases, raising ethical concerns. This has led to the
+development of numerous bias mitigation techniques.
+However, the selection of a fairness-aware model for a specific dataset often involves a process of trial and error, as
+it is not always feasible to predict in advance whether the mitigation measures provided by the model will meet the
+user's requirements, or what impact these measures will have on other model metrics such as accuracy and run time.
 
-This repository is dedicated to the evaluation and testing of a novel fairness approach in machine learning. The experiments are conducted using a Python file, `run.py`, which launches various configurations stored in the `utils_experiment_parameters.py` file.
+Existing fairness toolkits lack a comprehensive benchmarking framework. To bridge this gap, we present FairnessEval, a
+framework specifically designed to evaluate fairness in Machine Learning models. FairnessEval streamlines dataset preparation,
+fairness evaluation, and result presentation, while also offering customization options.
+In this demonstration, we highlight the functionality of FairnessEval in the selection and validation of fairness-aware models.
+We compare various approaches and simulate deployment scenarios to showcase FairnessEval effectiveness.
 
-## Launching Experiments
+Installation
+```bash
+pip install git+https://github.com/softlab-unimore/fairnesseval@main
+```
 
-To launch an experiment you can run Python script that read experiment parameters from a module (reccomended) or launch the experiment directly from the command line.
+# faireval API
+This tool provides two interfaces for running fairness experiments on your data.
 
-Using a Python script is more powerful and flexible, as it allows to launch multiple experiments in a row.
-It also allows to define experiment envolving multiple datasets and models in a single experiment.
+**1. Python Interface**
+You can define the experiment settings in the form of a Python dictionary and use one of the following Python functions to run experiments:
+    
+1. `fairnesseval.run.launch_experiment_by_id` let you define and organize your experiments in a python module (default at `fairnesseval.experiment_definitions`). Then you will need to call this function by specifying only the id of the experiment you want to run. **This is the reccommended interface.**
+    
+2. `fairnesseval.run.launch_experiment_by_config` let you run an experiment by passing the dictionary of parameters of your experiment in input.
 
-[//]: # (It allows to use variables to avoid code duplication, and to define the configurations in a single file.)
-The configurations are more readable, and it is easier to manage them in a single file.
+**2. Command Line Interface**
+Alternatively, you can use the command line interface of `fairnesseval.run` to specify the experiment settings using traditional CLI parameters.
 
+[//]: # (TODO define synthetic generations. explain how to use it. Automatically find and load it.)
 
-E.g.
+## 1 Python Interface
+
+To launch an experiment you can run Python script that read experiment parameters from a module (default at `fairnesseval.experiment_definitions`).
+
+Loading experiment definitions is more powerful and flexible, it allows to:
+
+*   launch multiple experiments in a row.
+*   specify multiple datasets.
+*   specify multiple models.
+*   configurations are more organized and readable.
+
+Define your experiment in a file. (You can find example of experiment configuration in `fairnesseval.experiment_definitions`).
+
+Eg.: Create `exp_def.py` and define an experiment.
 ```python
-import run
+import itertools
+import json
+
+import pandas as pd
+
+RANDOM_SEEDs_RESTRICTED_V1 = [1]
+
+TRAIN_FRACTIONS_SMALLER_DATASETS_v1 = [0.063, 0.251, 1.]
+TRAIN_FRACTIONS_v1 = [0.001, 0.004, 0.016, 0.063, 0.251, 1]  # np.geomspace(0.001,1,7) np.linspace(0.001,1,7)
+
+experiment_definitions = [
+    {
+        'experiment_id': 'new_experiment',
+        'dataset_names': ('adult_sigmod',),
+        'model_names': ('LogisticRegression',),
+        'random_seeds': RANDOM_SEEDs_RESTRICTED_V1,
+        'results_path': './demo_results'
+    }
+]
+
+```
+
+Copy the path to the experiment configuration file just defined.
+
+In my case on colab: `/content/exp_def.py`
+
+Then run the experiment in Colab
+```python
+import fairnesseval as fe
+fe.run.launch_experiment_by_id('new_experiment', '/content/exp_def.py')
+```
+
+
+
+or save the following code in a .py file to run the experiments.
+
+
+```python
+# FILE runner.py
+import fairnesseval as fe
 
 if __name__ == "__main__":
     conf_todo = [
-        'experiment_code.0',
+        "new_experiment",
         # ... (list of configurations to be executed)
     ]
     for x in conf_todo:
-        run.launch_experiment_by_id(x)
+        fe.run.launch_experiment_by_id(x, '/content/exp_def.py')
 
 ```
 
-The `run.py` file contains the code to launch the experiments.
-The configurations are read from `utils_experiment_parameters.py` module, and are organized in a list of dictionaries.
-e.g.:
+Then launch the python script:
+```bash
+python -m runner
+```
+
+Otherwise you can use `launch_experiment_by_config`.
+E.g.:
 ```python
-import json
-import run
-
-# Experiment configurations example
-RANDOM_SEEDS_v1 = [0,1]
-BASE_EPS_V1 = [0.005]
-train_fractions_v1 = [0.001, 0.004, 0.016, 0.063, 0.251, 1]
-eta_params_v1 = json.dumps({'eta0': [0.5, 1.0, 2.0], 'run_linprog_step': [False],
-                            'max_iter': [5, 10, 20, 50, 100]})
-
-experiment_configurations = [
-{
-    'experiment_id': 'experiment_code.0', 
-    'dataset_names': ['ACSEmployment'], # list of dataset names
-    'model_names': ['hybrids'], # list of model names
-    'eps': BASE_EPS_V1, # list of epsilons
-    'train_fractions': train_fractions_v1, # list of fractions     
-    'base_model_code': ['lr', 'lgbm'], # list of base model codes
-    'random_seeds': RANDOM_SEEDS_v1, # list of random seeds
-    'constraint_code': 'dp', # constraint code
-    'model_params': eta_params_v1,
-},
-]
-
-if __name__ == "__main__":
-
-    conf_todo = [
-        # next on fairlearn-2
-        # next on fairlearn-3
-
-        # 'acsER_binB2.1r',
-        # "demo.x.test",
-        "demo.default.test",
-        # 'demo.C.1r',
-        # 'demo.C.1r',
-        # testing
-        # 'acs_h_gs1_1.test',
-        # 'f_eta0_1.0.test',
-
-    ]
-
-    for x in conf_todo:
-        run.launch_experiment_by_id(x)
+fe.run.launch_experiment_by_config(
+    {
+        'experiment_id': 'new_experiment',
+        'dataset_names': ('adult_sigmod',),
+        'model_names': ('LogisticRegression',),
+        'random_seeds': [1],
+        'results_path': './demo_results'
+    }
+    )
 ```
 
-Otherways, you can launch the experiment directly from the command line using the following command:
+
+## CLI interface
+The equivalent CLI call to run the experiment defined before is:
 
 ```bash
-python -m run.py ACSEmployment hybrids --experiment_id experiment_code.0 --eps 0.005 --train_fractions 0.001 0.004 0.016 0.063 0.251 1 --random_seeds 0 1 --constraint_code dp --model_params {"eta0": [0.5, 1.0, 2.0], "run_linprog_step": [false], "max_iter": [5, 10, 20, 50, 100]} --base_model_code lr
+cd fairnesseval/src/fairnesseval
+!python -m run --dataset_name adult_sigmod --model_name LogisticRegression --experiment_id new_experiment --random_seeds 1 --results_path /content/demo_results
 ```
 
+
+
 List of available models can be found in the `models.wrappers` module.
-It is possible to define new models by importing the model in the `models.wrappers` module and add the name and class as key, value pair in the `additional_models_dict` dictionary.
+It is possible to define new models by importing the model class in the `models.wrappers` module and add the name and class as
+key, value pair in the `additional_models_dict` dictionary.
 
 ```python
 from example_model import ExampleModel
@@ -97,19 +142,18 @@ additional_models_dict = {
 
 ```
 
-
-
-
-
-
 [//]: # ()
+
 [//]: # (# Scalable Fairlearn)
 
 [//]: # ()
+
 [//]: # ()
+
 [//]: # (## Example Runs)
 
 [//]: # ()
+
 [//]: # (#### Synth)
 
 [//]: # (```)
@@ -119,6 +163,7 @@ additional_models_dict = {
 [//]: # (```)
 
 [//]: # ()
+
 [//]: # (```)
 
 [//]: # (time stdbuf -oL python run.py synth hybrids --eps=0.05 -n=1000000 -f=3 -t=0.5 -t0=0.3 -t1=0.6 -v=1 --test_ratio=0.3 --sample_seeds=0,1,2,3,4,5,6,7,8,9 --train_fractions=0.016 --grid-fraction=0.5)
@@ -126,6 +171,7 @@ additional_models_dict = {
 [//]: # (```)
 
 [//]: # ()
+
 [//]: # (##### Unmitigated)
 
 [//]: # (```)
@@ -135,6 +181,7 @@ additional_models_dict = {
 [//]: # (```)
 
 [//]: # ()
+
 [//]: # (##### Fairlearn)
 
 [//]: # (```)
@@ -150,7 +197,9 @@ additional_models_dict = {
 [//]: # (```)
 
 [//]: # ()
+
 [//]: # ()
+
 [//]: # (#### Adult)
 
 [//]: # (```)
@@ -160,7 +209,9 @@ additional_models_dict = {
 [//]: # (```)
 
 [//]: # ()
+
 [//]: # ()
+
 [//]: # (```)
 
 [//]: # (time stdbuf -oL python run.py adult fairlearn --eps=0.05)
@@ -174,12 +225,17 @@ additional_models_dict = {
 [//]: # (```)
 
 [//]: # ()
+
 [//]: # ()
+
 [//]: # ()
+
 [//]: # ()
+
 [//]: # (## TODOs)
 
 [//]: # ()
+
 [//]: # (### Complete Hybrid Method)
 
 [//]: # (* Single hybrid method that gets the best of all hybrid methods we have)
@@ -187,6 +243,7 @@ additional_models_dict = {
 [//]: # (* Show that it works on both train and test data)
 
 [//]: # ()
+
 [//]: # (### Scaling experiments)
 
 [//]: # (* Show running time savings when dataset is very large &#40;use synthetic data&#41;)
@@ -194,6 +251,7 @@ additional_models_dict = {
 [//]: # (* Also try logistic regression on large image dataset)
 
 [//]: # ()
+
 [//]: # (### Multiple datasets)
 
 [//]: # (* Show it works on three datasets)
@@ -201,11 +259,13 @@ additional_models_dict = {
 [//]: # (* Try logistic regression on large image dataset)
 
 [//]: # ()
+
 [//]: # (### Increasing number of attributes)
 
 [//]: # (* Decide if we can do that experiment...)
 
 [//]: # ()
+
 [//]: # (### Other things)
 
 [//]: # (* How to subsample for the scalability plot to ensure + and - points are treated equally &#40;stratified data sampling?&#41;)
