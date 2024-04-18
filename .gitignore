@@ -144,3 +144,4 @@ dmypy.json
 /run_experiments/
 /streamlit/
 /src/fairnesseval/non_synched_files/
+/src/fairnesseval/datasets/
