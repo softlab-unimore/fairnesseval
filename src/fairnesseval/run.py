@@ -24,7 +24,6 @@ import fairnesseval as fe
 from fairnesseval import utils_experiment_parameters, utils_prepare_data, utils_general, metrics
 import fairnesseval.experiment_definitions
 from fairnesseval.metrics import metrics_code_map
-from fairnesseval.models import models
 from fairnesseval.utils_experiment_parameters import experiment_configurations
 from fairnesseval.utils_general import Singleton
 
@@ -43,7 +42,7 @@ def to_arg(list_p, dict_p, original_argv):
         elif isinstance(value, dict):
             value = [json.dumps(value)]
         else:
-            value = [value]
+            value = [str(value)]
         res_string += [add_minus(key)] + value
         # res_string += [f'{key}={value}']
     return res_string
@@ -98,10 +97,7 @@ def launch_experiment_by_config(exp_dict: dict):
         params = []
     results_dir = exp_dict.get('results_path', None)
     if results_dir is None:
-        host_name = socket.gethostname()
-        if "." in host_name:
-            host_name = host_name.split(".")[-1]
-        results_dir = os.path.join('results', host_name)
+        results_dir = utils_experiment_parameters.FAIR2_SAVE_PATH
     results_dir = os.path.join(results_dir, experiment_id)
     os.makedirs(results_dir, exist_ok=True)
     try:
@@ -121,6 +117,8 @@ def launch_experiment_by_config(exp_dict: dict):
     sys.excepthook = exc_handler
     logging.info(f'Parameters of experiment {experiment_id}\n' +
                  json.dumps(exp_dict_orig, default=list).replace(', \"', ',\n\t\"'))
+
+
     a = datetime.now()
     logging.info(f'Started logging.')
     to_iter = itertools.product(base_model_code_list, dataset_name_list, model_name_list)
@@ -175,7 +173,7 @@ class ExperimentRun(metaclass=Singleton):
         if "." in host_name:
             host_name = host_name.split(".")[-1]
         self.host_name = host_name
-        self.base_result_dir = f'results/{host_name}/'
+        self.base_result_dir = utils_experiment_parameters.FAIR2_SAVE_PATH
         self.time_str = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 
     def get_arguments(self):
@@ -294,11 +292,7 @@ class ExperimentRun(metaclass=Singleton):
             if train_test_seed is None:
                 train_test_seed = original_random_seed
             self.set_base_data_dict()
-            if prm['base_model_code'] is not None:
-                self.tuning_step(base_model_code=prm['base_model_code'], X=X, y=y, fractions=prm['train_fractions'],
-                                 random_seed=0,
-                                 redo_tuning=prm[
-                                     'redo_tuning'])  # TODO: random_seed=0 to simplify, may be corrected later.
+
 
             for train_test_fold, datasets_divided in tqdm(enumerate(
                     utils_prepare_data.split_dataset_generator(self.dataset_str, datasets, train_test_seed,
@@ -321,6 +315,12 @@ class ExperimentRun(metaclass=Singleton):
                 for values in itertools.product(*params_to_iterate.values()):
                     all_params = dict(zip(params_keys, values))
                     self.data_dict.update(**all_params)
+                    if self.data_dict['base_model_code'] is not None:
+                        self.tuning_step(base_model_code=self.data_dict['base_model_code'], X=X, y=y,
+                                         fractions=prm['train_fractions'],
+                                         random_seed=0,
+                                         redo_tuning=prm[
+                                             'redo_tuning'])  # TODO: random_seed=0 to simplify, may be corrected later.
                     logging.info(f'Starting step: random_seed: {random_seed}, train_test_seed: {train_test_seed}, '
                                  f'train_test_fold: {train_test_fold} \n'
                                  + json.dumps(all_params, default=list))
@@ -342,26 +342,26 @@ class ExperimentRun(metaclass=Singleton):
                 model_params.pop('eps')
             except:
                 pass
-            model_params = dict(grid_fractions=self.prm['grid_fractions'],
-                                exp_subset=self.prm['exp_subset'],
-                                exp_grid_ratio=self.prm['exp_grid_ratio'],
-                                run_linprog_step=self.prm['run_linprog_step'],
+            model_params = dict(grid_fractions=self.data_dict['grid_fractions'],
+                                exp_subset=self.data_dict['exp_subset'],
+                                exp_grid_ratio=self.data_dict['exp_grid_ratio'],
+                                run_linprog_step=self.data_dict['run_linprog_step'],
                                 random_seed=random_seed,
-                                base_model_code=self.prm['base_model_code'],
-                                constraint_code=self.prm['constraint_code'],
+                                base_model_code=self.data_dict['base_model_code'],
+                                constraint_code=self.data_dict['constraint_code'],
                                 eps=self.data_dict.get('eps')) | model_params
             turn_results = self.run_hybrids(*datasets_divided, **model_params)
         elif 'unmitigated' == self.prm['model_name']:
             turn_results = self.run_unmitigated(*datasets_divided,
                                                 random_seed=random_seed,
-                                                base_model_code=self.prm['base_model_code'])
+                                                base_model_code=self.data_dict['base_model_code'])
         # elif 'fairlearn' == self.prm['model_name']:
         #     turn_results = self.run_fairlearn_full(*datasets_divided, eps=self.prm['eps'],
         #                                            run_linprog_step=self.prm['run_linprog_step'],
         #                                            random_seed=random_seed,
-        #                                            base_model_code=self.prm['base_model_code'], )
+        #                                            base_model_code=self.data_dict['base_model_code'], )
         else:
-            model_params = dict(random_seed=random_seed, base_model_code=self.prm['base_model_code']) | model_params
+            model_params = dict(random_seed=random_seed, ) | model_params
             turn_results = self.run_general_fairness_model(*datasets_divided,
                                                            **model_params)
         results_list += turn_results
@@ -382,7 +382,7 @@ class ExperimentRun(metaclass=Singleton):
             # f'last_'
             ''
         ]:
-            suffix = f"_{self.prm['base_model_code']}" if self.prm['base_model_code'] is not None else ''
+            suffix = f"_{self.data_dict['base_model_code']}" if self.data_dict['base_model_code'] is not None else ''
             path = os.path.join(directory,
                                 f"{prefix}{name}_{self.prm['dataset_name']}{suffix}.csv")
             if os.path.isfile(path):
@@ -480,7 +480,7 @@ class ExperimentRun(metaclass=Singleton):
 
             # Expgrad on sample
             self.data_dict['model_name'] = f'expgrad_fracs{run_lp_suffix}'
-            expgrad_frac = models.hybrid_models.ExponentiatedGradientPmf(estimator=deepcopy(base_model),
+            expgrad_frac = fe.models.hybrid_models.ExponentiatedGradientPmf(estimator=deepcopy(base_model),
                                                                          run_linprog_step=run_linprog_step,
                                                                          constraints=deepcopy(constraint), eps=turn_eps,
                                                                          nu=1e-6,
@@ -499,7 +499,7 @@ class ExperimentRun(metaclass=Singleton):
             self.data_dict['model_name'] = f'hybrid_7{run_lp_suffix}'
             print(f"Running {self.data_dict['model_name']}")
             subsample_size = int(X_train_all.shape[0] * exp_f)
-            expgrad_subsample = models.hybrid_models.ExponentiatedGradientPmf(estimator=deepcopy(base_model),
+            expgrad_subsample = fe.models.hybrid_models.ExponentiatedGradientPmf(estimator=deepcopy(base_model),
                                                                               run_linprog_step=run_linprog_step,
                                                                               constraints=deepcopy(constraint),
                                                                               eps=turn_eps, nu=1e-6,
@@ -521,7 +521,7 @@ class ExperimentRun(metaclass=Singleton):
                 #################################################################################################
                 self.data_dict['model_name'] = f'{prefix}hybrid_5{run_lp_suffix}'
                 print(f"Running {self.data_dict['model_name']}")
-                model5 = models.hybrid_models.Hybrid5(constraint=deepcopy(constraint), expgrad_frac=turn_expgrad,
+                model5 = fe.models.hybrid_models.Hybrid5(constraint=deepcopy(constraint), expgrad_frac=turn_expgrad,
                                                       eps=turn_eps, )
                 metrics_res, time_lp_dict, time_eval_dict = self.fit_evaluate_model(model5, all_params,
                                                                                     eval_dataset_dict)
@@ -550,7 +550,7 @@ class ExperimentRun(metaclass=Singleton):
                 self.data_dict['model_name'] = f'{prefix}hybrid_1{run_lp_suffix}'
                 print(f"Running {self.data_dict['model_name']}")
                 grid_subsample_size = int(X_train_all.shape[0] * grid_f)
-                model = models.hybrid_models.Hybrid1(expgrad=turn_expgrad, eps=turn_eps,
+                model = fe.models.hybrid_models.Hybrid1(expgrad=turn_expgrad, eps=turn_eps,
                                                      constraint=deepcopy(constraint),
                                                      base_model=deepcopy(base_model),
                                                      grid_subsample=grid_subsample_size)
@@ -567,7 +567,7 @@ class ExperimentRun(metaclass=Singleton):
                 #################################################################################################
                 self.data_dict['model_name'] = f'{prefix}hybrid_2{run_lp_suffix}'
                 print(f"Running {self.data_dict['model_name']}")
-                model = models.hybrid_models.Hybrid2(expgrad=turn_expgrad, grid_search_frac=grid_search_frac,
+                model = fe.models.hybrid_models.Hybrid2(expgrad=turn_expgrad, grid_search_frac=grid_search_frac,
                                                      eps=turn_eps,
                                                      constraint=deepcopy(constraint))
                 metrics_res, _, time_eval_dict = self.fit_evaluate_model(model, grid_params, eval_dataset_dict)
@@ -578,7 +578,7 @@ class ExperimentRun(metaclass=Singleton):
                 #################################################################################################
                 self.data_dict['model_name'] = f'{prefix}hybrid_3{run_lp_suffix}'
                 print(f"Running {self.data_dict['model_name']}")
-                model = models.hybrid_models.Hybrid3(grid_search_frac=grid_search_frac, eps=turn_eps,
+                model = fe.models.hybrid_models.Hybrid3(grid_search_frac=grid_search_frac, eps=turn_eps,
                                                      constraint=deepcopy(constraint))
                 metrics_res, time_lp3_dict, time_eval_dict = self.fit_evaluate_model(model, all_params,
                                                                                      eval_dataset_dict)
@@ -591,7 +591,7 @@ class ExperimentRun(metaclass=Singleton):
                     #################################################################################################
                     self.data_dict['model_name'] = f'{prefix}hybrid_3_U{run_lp_suffix}'
                     print(f"Running {self.data_dict['model_name']}")
-                    model = models.hybrid_models.Hybrid3(grid_search_frac=grid_search_frac, eps=turn_eps,
+                    model = fe.models.hybrid_models.Hybrid3(grid_search_frac=grid_search_frac, eps=turn_eps,
                                                          constraint=deepcopy(constraint),
                                                          unconstrained_model=unconstrained_model)
                     metrics_res, time_lp3_dict, time_eval_dict = self.fit_evaluate_model(model, all_params,
@@ -606,7 +606,7 @@ class ExperimentRun(metaclass=Singleton):
                 #################################################################################################
                 self.data_dict['model_name'] = f'{prefix}hybrid_4{run_lp_suffix}'
                 print(f"Running {self.data_dict['model_name']}")
-                model = models.hybrid_models.Hybrid4(expgrad=turn_expgrad, grid_search_frac=grid_search_frac,
+                model = fe.models.hybrid_models.Hybrid4(expgrad=turn_expgrad, grid_search_frac=grid_search_frac,
                                                      eps=turn_eps,
                                                      constraint=deepcopy(constraint))
                 metrics_res, time_lp4_dict, time_eval_dict = self.fit_evaluate_model(model, all_params,
@@ -619,7 +619,7 @@ class ExperimentRun(metaclass=Singleton):
                 #################################################################################################
                 self.data_dict['model_name'] = f'{prefix}hybrid_6{run_lp_suffix}'
                 print(f"Running {self.data_dict['model_name']}")
-                model = models.hybrid_models.Hybrid3(add_exp_predictors=True, grid_search_frac=grid_search_frac,
+                model = fe.models.hybrid_models.Hybrid3(add_exp_predictors=True, grid_search_frac=grid_search_frac,
                                                      expgrad=turn_expgrad,
                                                      eps=turn_eps, constraint=deepcopy(constraint))
                 metrics_res, time_lp_dict, time_eval_dict = self.fit_evaluate_model(model, all_params,
@@ -633,7 +633,7 @@ class ExperimentRun(metaclass=Singleton):
                     #################################################################################################
                     self.data_dict['model_name'] = f'{prefix}hybrid_6_U{run_lp_suffix}'
                     print(f"Running {self.data_dict['model_name']}")
-                    model = models.hybrid_models.Hybrid3(add_exp_predictors=True, grid_search_frac=grid_search_frac,
+                    model = fe.models.hybrid_models.Hybrid3(add_exp_predictors=True, grid_search_frac=grid_search_frac,
                                                          expgrad=turn_expgrad,
                                                          eps=turn_eps, constraint=deepcopy(constraint),
                                                          unconstrained_model=unconstrained_model)
@@ -685,7 +685,7 @@ class ExperimentRun(metaclass=Singleton):
         # kwargs['constraint_code'] = constraint_code_to_name[kwargs['constraint_code']]
         if base_model is not None:
             kwargs['base_model'] = base_model
-        return models.get_model(method_str=self.prm['model_name'], random_state=random_seed, datasets=self.datasets,
+        return fe.models.get_model(method_str=self.prm['model_name'], random_state=random_seed, datasets=self.datasets,
                                 **kwargs)
 
     def run_unmitigated(self, train_data: list, test_data: list,
@@ -716,7 +716,7 @@ class ExperimentRun(metaclass=Singleton):
             constraint = utils_prepare_data.get_constraint(constraint_code=self.prm['constraint_code'], eps=turn_eps)
             self.data_dict['eps'] = turn_eps
             base_model = self.load_base_model_with_best_param(base_model_code=base_model_code, random_state=random_seed)
-            expgrad_X_logistic = models.hybrid_models.ExponentiatedGradientPmf(base_model,
+            expgrad_X_logistic = fe.models.hybrid_models.ExponentiatedGradientPmf(base_model,
                                                                                constraints=deepcopy(constraint),
                                                                                eps=turn_eps, nu=1e-6,
                                                                                run_linprog_step=run_linprog_step)
@@ -832,7 +832,7 @@ class ExperimentRun(metaclass=Singleton):
             random_state = self.data_dict['random_seed']
         best_params = self.load_best_params(base_model_code, fraction=fraction,
                                             random_seed=0)  # todo change random seed. For simplicity in fine tuning it is 0.
-        model = models.get_base_model(base_model_code=base_model_code, random_seed=random_state)
+        model = fe.models.get_base_model(base_model_code=base_model_code, random_seed=random_state)
         model.set_params(**best_params)
         return model
 
@@ -841,8 +841,8 @@ class ExperimentRun(metaclass=Singleton):
             print(f'base_model_code is None. Not starting finetuning.')
             return
         fractions = deepcopy(fractions)
-        if 1 not in fractions:  # always add fraction 1 because it is used in run_hybrids
-            fractions += [1]
+        # if 1 not in fractions:  # always add fraction 1 because it is used in run_hybrids
+        #     fractions += [1]
         fractions = [float(x) for x in fractions]
         for turn_frac in (pbar := tqdm(fractions)):
             pbar.set_description(f'fraction: {turn_frac: <5}')
@@ -850,6 +850,15 @@ class ExperimentRun(metaclass=Singleton):
             os.makedirs(directory, exist_ok=True)
             name = f'grid_search_{base_model_code}_rnd{random_seed}_frac{turn_frac}'
             path = os.path.join(directory, name + '.pkl')
+            try:
+                grid_clf = joblib.load(path)
+                tmp = grid_clf.best_params_
+            except Exception as e:
+                print(f'Error in loading best params: {e}. Re-launching fine tuning...')
+                # delete file at path
+                if os.path.exists(path):
+                    os.remove(path)
+
             if redo_tuning or not os.path.exists(path):
                 print(f'Starting finetuning of {base_model_code}')
                 size = X.shape[0]
@@ -858,7 +867,7 @@ class ExperimentRun(metaclass=Singleton):
                     sample_mask, _ = train_test_split(sample_mask, train_size=turn_frac, stratify=y,
                                                       random_state=random_seed, shuffle=True)
                 a = datetime.now()
-                clf = models.finetune_model(base_model_code, pd.DataFrame(X).iloc[sample_mask],
+                clf = fe.models.finetune_model(base_model_code, pd.DataFrame(X).iloc[sample_mask],
                                             pd.Series(y.ravel()).iloc[sample_mask],
                                             random_seed=random_seed)
                 b = datetime.now()
@@ -872,12 +881,14 @@ class ExperimentRun(metaclass=Singleton):
 
     def load_best_params(self, base_model_code, fraction, random_seed=0):
         directory = os.path.join(self.base_result_dir, self.dataset_str, 'tuned_models')
+        fraction = float(fraction)
         # os.makedirs(directory, exist_ok=True)
         try:
             path = os.path.join(directory, f'grid_search_{base_model_code}_rnd{random_seed}_frac{fraction}.pkl')
             grid_clf = joblib.load(path)
             return grid_clf.best_params_
-        except:
+        except Exception as e:
+            print(f'Error in loading best params: {e}')
             return {}
 
 
