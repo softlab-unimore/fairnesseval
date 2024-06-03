@@ -44,8 +44,9 @@ class DatasetGenerator:
         rnd_value = rnd.rand(self.args.n_samples, self.args.n_features)
         # copy eps n_outcomes times in eps array
         eps = np.tile(self.args.eps, (self.args.n_samples, 1))
-        mask = rnd_value >= (0.5 + eps)
-        features[mask] = 1 - features[mask]
+        equal_mask = rnd_value < (0.5 + eps) # derived from Y_i with a probability of 1/2 + eps_i, and its complement(1 −Y_i ) with the remaining probability
+        complement_mask = ~equal_mask
+        features[complement_mask] = 1 - features[complement_mask]
 
         # Create DataFrame
         data = np.column_stack((sensitive_attributes, flipped_outcomes, features))
@@ -55,14 +56,7 @@ class DatasetGenerator:
         return df
 
 
-def main(arguments):
-    generator = DatasetGenerator(arguments)
-    dataset = generator.generate_dataset()
-    os.makedirs(os.path.dirname(arguments.output_path), exist_ok=True)
-    dataset.to_csv(arguments.output_path, index=False)
-
-
-if __name__ == '__main__':
+def main():
     parser = argparse.ArgumentParser(description='Dataset Generator')
     parser.add_argument('--n_samples', type=int, default=int(1e6), help='Number of samples in the dataset.')
     parser.add_argument('--n_features', type=int, default=5, help='Number of features in the dataset.')
@@ -82,10 +76,33 @@ if __name__ == '__main__':
                         help='Probabilities of flipping the outcome for each sensitive attribute value from Positive '
                              'to Negative. [expected to be a list with the same length of group_values]')
     parser.add_argument('--eps', type=float, nargs='+', default=np.arange(5) / 10,
-                        help='Epsilon for feature randomization. [expected to be a list of length n_features]')
+                        help='''Epsilon for feature randomization. Each feature, denoted as 𝑋𝑖 𝑗 ,
+                         is derived from 𝑌𝑖 with a probability of 1/2 + eps𝑗 , and its complement(1 −𝑌𝑖 )
+                          with the remaining probability. [expected to be a list of length n_features]''')
     parser.add_argument('--random_seed', type=int, default=42, help='Random seed.')
     parser.add_argument('--output_path', type=str, default='./datasets/default_dataset.csv',
                         help='Output path for the generated dataset.')
     # random seed
     args = parser.parse_args()
-    main(args)
+    generator = DatasetGenerator(args)
+    dataset = generator.generate_dataset()
+    os.makedirs(os.path.dirname(args.output_path), exist_ok=True)
+    dataset.to_csv(args.output_path, index=False)
+
+
+if __name__ == '__main__':
+    original_argv = sys.argv.copy()
+    kwargs = {'n_samples': int(1e9),
+              'n_features': 5,
+              'group_values': [0, 1],
+              'group_probabilities': [0.55, 0.45],
+              'group_target_probabilities': [0.5, 0.3],
+              'neg_to_pos_target_flip_prob': [0.15, 0.1],
+              'pos_to_neg_target_flip_prob': [0.1, 0.15],
+              'eps': [-.2, -.1, 0, .1, .2], # np.arange(5)/10 - 0.2
+              'random_seed': 42,
+              'output_path': fairnesseval.utils_experiment_parameters.FAIR2_SAVE_PATH + '/datasets/synth_1e9_dataset.csv',
+              }
+    sys.argv = to_arg([], kwargs, original_argv)
+
+    main()
