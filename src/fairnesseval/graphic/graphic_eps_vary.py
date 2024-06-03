@@ -81,6 +81,45 @@ if __name__ == '__main__':
     grouping_col = 'eps'
     x_axis_list = ['eps']
 
+    rlp_df_filtered_v2 = rlp_df[rlp_df['max_iter'].isin([50])]
+
+    # rlp_df_filtered_v2 = rlp_df_filtered_v2.query(
+    #     '~(dataset_name=="ACSEmployment" & max_iter == 50 & run_linprog_step == False)')
+    # rlp_df_filtered_v2 = rlp_df_filtered_v2.query('~(dataset_name!="ACSEmployment" & max_iter == 100)')
+    # tmp_filter = rlp_df_filtered_v2['dataset_name'] == "ACSEmployment"
+    # rlp_df_filtered_v2.loc[tmp_filter, 'model_code'] = rlp_df_filtered_v2.loc[tmp_filter, 'model_code'].str.replace(
+    #     ' max_iter=100', '')
+    # join as string the fields ['run_linprog_step', 'max_iter', 'dataset_name', 'eta0', 'constraint_code']
+    # rlp_df_filtered_v2
+    # # filter acsEmployment
+
+
+    all_df = pd.concat([results_df, rlp_df_filtered_v2])
+    restricted_v2 = ['unconstrained', 'Calmon', 'Feld', 'ZafarDI', 'ZafarEO', 'ThresholdOptimizer'] + \
+                    rlp_df_filtered_v2['model_code'].unique().tolist() + ['hybrid_7']
+    sort_map = {name: i for i, name in enumerate(restricted_v2)}
+    all_df = all_df.assign(model_sort=all_df['model_code'].map(sort_map)).sort_values(
+        ['dataset_name', 'base_model_code', 'constraint_code', 'model_sort'],
+        ascending=[True, False, True, True]).drop(columns=['model_sort'])
+    # all_df.loc[all_df['model_code'].str.contains('unconstrained'), 'eps'].unique()
+    all_df = all_df[all_df['phase'] != 'evaluation']
+
+    # version v3
+    plot_all_df_subplots(all_df, model_list=restricted_v2, chart_name='eps_v3', grouping_col='eps',
+                         save=save, show=show, sharex=False, sharey=False,
+                         axis_to_plot=[['test_violation', 'test_error'],
+                                       ['test_violation', 'time'],
+                                       ],
+                         params=dict(no_errorbar=True)
+                         )
+    # version v4
+    plot_all_df_subplots(all_df, model_list=restricted_v2, chart_name='eps_v4', grouping_col='eps',
+                         save=save, show=show, sharex=False, sharey=False,
+                         axis_to_plot=[['test_violation', 'test_error'],
+                                       ['test_violation', 'time'],
+                                       ],
+                         )
+
     # Version v1 nad v2
     rlp_df_filtered = rlp_df[rlp_df['max_iter'].isin([5, 10, 50, 100])]
     all_df = pd.concat([results_df, rlp_df_filtered])
@@ -100,38 +139,5 @@ if __name__ == '__main__':
         plot_all_df_subplots(all_df, model_list=restricted_v1, chart_name='eps' + suffix, grouping_col='eps',
                              save=save, show=show,
                              axis_to_plot=list(itertools.product(x_axis_list, y_axis_list)))
-        pass
-
-    rlp_df_filtered_v2 = rlp_df[rlp_df['max_iter'].isin([50, 100])]
-    rlp_df_filtered_v2 = rlp_df_filtered_v2.query(
-        '~(dataset_name=="ACSEmployment" & max_iter == 50 & run_linprog_step == False)')
-    rlp_df_filtered_v2 = rlp_df_filtered_v2.query('~(dataset_name!="ACSEmployment" & max_iter == 100)')
-    tmp_filter = rlp_df_filtered_v2['dataset_name'] == "ACSEmployment"
-    rlp_df_filtered_v2.loc[tmp_filter, 'model_code'] = rlp_df_filtered_v2.loc[tmp_filter, 'model_code'].str.replace(
-        ' max_iter=100', '')
-    all_df = pd.concat([results_df, rlp_df_filtered_v2])
-    restricted_v2 = ['unconstrained', 'Calmon', 'Feld', 'ZafarDI', 'ZafarEO', 'ThresholdOptimizer'] + \
-                    rlp_df_filtered_v2['model_code'].unique().tolist() + ['hybrid_7']
-    sort_map = {name: i for i, name in enumerate(restricted_v2)}
-    all_df = all_df.assign(model_sort=all_df['model_code'].map(sort_map)).sort_values(
-        ['dataset_name', 'base_model_code', 'constraint_code', 'model_sort'],
-        ascending=[True, False, True, True]).drop(columns=['model_sort'])
-    # all_df.loc[all_df['model_code'].str.contains('unconstrained'), 'eps'].unique()
-    all_df = all_df[all_df['phase'] != 'evaluation']
 
 
-    # version v3
-    plot_all_df_subplots(all_df, model_list=restricted_v2, chart_name='eps_v3', grouping_col='eps',
-                         save=save, show=show, sharex=False, sharey=False,
-                         axis_to_plot=[['test_violation', 'test_error'],
-                                       ['test_violation', 'time'],
-                                       ],
-                         params=dict(no_errorbar=True)
-                         )
-    # version v4
-    plot_all_df_subplots(all_df, model_list=restricted_v2, chart_name='eps_v4', grouping_col='eps',
-                         save=save, show=show, sharex=False, sharey=False,
-                         axis_to_plot=[['test_violation', 'test_error'],
-                                       ['test_violation', 'time'],
-                                       ],
-                         )
