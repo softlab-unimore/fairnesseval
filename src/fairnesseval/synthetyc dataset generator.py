@@ -1,9 +1,12 @@
 import argparse
 import os
+import sys
 
 import numpy as np
 import pandas as pd
 
+from fairnesseval.run import to_arg
+import fairnesseval
 
 class DatasetGenerator:
     def __init__(self, arguments):

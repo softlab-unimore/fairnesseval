@@ -4,10 +4,10 @@ import os
 
 import pandas as pd
 
-from . import utils_results_data
-from .graphic_utility import select_oracle_call_time, PlotUtility, plot_all_df_subplots, \
+from fairnesseval import utils_results_data
+from fairnesseval.graphic.graphic_utility import select_oracle_call_time, PlotUtility, plot_all_df_subplots, \
     extract_expgrad_oracle_time
-from .utils_results_data import prepare_for_plot
+from fairnesseval.graphic.utils_results_data import prepare_for_plot, best_gap_filter_on_eta0, cols_to_synch
 
 if __name__ == '__main__':
     save = True

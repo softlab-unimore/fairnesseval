@@ -3,10 +3,10 @@ import os
 
 import pandas as pd
 
-from . import utils_results_data, graphic_utility
-from .style_utility import StyleUtility
-from .utils_results_data import prepare_for_plot
-from .graphic_utility import plot_all_df_subplots, PlotUtility
+from fairnesseval.graphic import utils_results_data, graphic_utility
+from fairnesseval.graphic.style_utility import StyleUtility
+from fairnesseval.graphic.utils_results_data import prepare_for_plot
+from fairnesseval.graphic.graphic_utility import plot_all_df_subplots, PlotUtility
 
 if __name__ == '__main__':
     save = True
@@ -59,15 +59,15 @@ if __name__ == '__main__':
     base_plot_dir = os.path.join('results', 'plots')
     results_df = utils_results_data.load_results_experiment_id(experiment_code_list, dataset_results_path)
 
-    feld_res = results_df.query('model_name =="Feld"')[:]
+    feld_res = results_df.query('model_code == "Feld"')[:]
     feld_res['constraint_code'] = 'eo'
-    calmon_res = results_df.query('model_name =="Calmon"')[:]
+    calmon_res = results_df.query('model_code =="Calmon"')[:]
     calmon_res['constraint_code'] = 'eo'
     results_df = pd.concat([results_df, feld_res, calmon_res])
     results_df = results_df[~((results_df['model_code'] == "unconstrained") & (results_df['exp_frac'] == 0.251))]
 
     # Check number of replication
-    # all_df.loc[all_df['model_name'] == 'ZafarDI', ['train_test_fold', 'random_seed', 'train_test_seed']].apply(lambda x: '_'.join(x.astype(str)), 1).nunique()
+    # all_df.loc[all_df['model_code'] == 'ZafarDI', ['train_test_fold', 'random_seed', 'train_test_seed']].apply(lambda x: '_'.join(x.astype(str)), 1).nunique()
     # a = utils_results_data.load_results_experiment_id(['acs_h_gs1_1.0'], dataset_results_path)
     # a[a['dataset_name'].str.startswith('ACS')][['random_seed','train_test_fold', 'train_test_seed']].apply(lambda x: '_'.join(x.astype(str)),axis=1).unique() # value_counts()
     # a.query('dataset_name == "ACSEmployment"')[np.intersect1d(x.columns, utils_results_data.cols_to_aggregate)].apply(lambda x: '_'.join(x.astype(str)), axis=1).unique().tolist()

@@ -5,18 +5,17 @@ import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
 
-from . import utils_results_data
-from .style_utility import StyleUtility
-from .utils_results_data import prepare_for_plot
-from .graphic_utility import plot_all_df_subplots, PlotUtility
-from . import graphic_utility
+from fairnesseval import utils_results_data
+from fairnesseval.graphic.style_utility import StyleUtility
+from fairnesseval.graphic.utils_results_data import prepare_for_plot
+from fairnesseval.graphic.graphic_utility import plot_all_df_subplots, PlotUtility
+from fairnesseval.graphic import graphic_utility
 
 if __name__ == '__main__':
     save = True
     show = False
 
     experiment_code_list = [
-
         'acsER_binB1.0r',
         'acsER_binB1.1r',
         'acsER_binB2.0r',
@@ -143,7 +142,7 @@ if __name__ == '__main__':
                 y_axis_list = [x.replace(key, value) for x in y_axis_list]
             y_axis_list = [y_bin_map.get(x, x) for x in y_axis_list]
 
-            graphic_utility.bar_plot_function_by_model(df=mean_error_df.query(f'constraint_code == "{cc}"'), ax=ax,
+            graphic_utility.bar_plot_function_by_model(df=mean_error_df[mean_error_df['constraint_code'] == cc], ax=ax,
                                                        fig=fig,
                                                        y_axis_list=y_axis_list)
         if show:

@@ -3,9 +3,9 @@ import os
 
 import pandas as pd
 
-from . import utils_results_data
-from .graphic_utility import PlotUtility, plot_all_df_subplots
-from .utils_results_data import best_gap_filter_on_eta0
+from fairnesseval import utils_results_data
+from fairnesseval.graphic.graphic_utility import PlotUtility, plot_all_df_subplots
+from fairnesseval.graphic.utils_results_data import best_gap_filter_on_eta0
 
 if __name__ == '__main__':
     save = True

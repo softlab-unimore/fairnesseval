@@ -20,7 +20,7 @@ import re
 import send2trash
 from sklearn.model_selection import train_test_split
 from tqdm import tqdm
-
+import fairnesseval as fe
 from fairnesseval import utils_experiment_parameters, utils_prepare_data, utils_general, metrics
 import fairnesseval.experiment_definitions
 from fairnesseval.metrics import metrics_code_map

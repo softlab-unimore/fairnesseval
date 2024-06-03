@@ -634,7 +634,7 @@ def plot_all_df_subplots(all_df, model_list, chart_name, save, show=True, groupi
 
             if annotate_col is not None:
                 col_to_use += [annotate_col]
-            df_subplot = df_to_plot.groupby([subplots_by_col], sort=False, )[col_to_use]
+            df_subplot = df_to_plot.groupby(subplots_by_col, sort=False, )[col_to_use]
 
             for col, (subplot_value, turn_df) in enumerate(df_subplot):
                 pl_util.col = col
