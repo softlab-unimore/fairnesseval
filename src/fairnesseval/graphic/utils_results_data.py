@@ -119,7 +119,6 @@ def prepare_data(df):
     return df
 
 
-
 def add_missing_columns(df):
     if 'train_test_seed' not in df.columns:
         df['train_test_seed'] = 0
@@ -231,7 +230,7 @@ def get_confidence_error(data, confidence: float = 0.95):
     h1 = m - se * t_value
     h2 = m + se * t_value
 
-    return (h2 - h1) /2
+    return (h2 - h1) / 2
 
 
 def mean_confidence_interval(data, confidence: float = 0.95):
@@ -292,6 +291,7 @@ def get_combined_groupby(x, alpha=0.5):
     comb_df['alpha'] = alpha
     return comb_df
 
+
 def available_experiment_results(results_path):
     if not os.path.exists(results_path):
         print(f"The path {results_path} does not exist.")
@@ -301,6 +301,7 @@ def available_experiment_results(results_path):
     experiments = [name for name in os.listdir(results_path) if os.path.isdir(os.path.join(results_path, name))]
 
     return experiments
+
 
 def load_results_experiment_id(experiment_code_list, dataset_results_path):
     df_list = []
@@ -324,7 +325,8 @@ def load_results_experiment_id(experiment_code_list, dataset_results_path):
                 current_config = fairnesseval.run.get_config_by_id(experiment_code)
                 df = prepare_data(df)
 
-                if current_config is not None and 'grid_fractions' in current_config.keys() and current_config['grid_fractions'] == [1]:
+                if current_config is not None and 'grid_fractions' in current_config.keys() and current_config[
+                    'grid_fractions'] == [1]:
                     models_with_gridsearch = df.query('phase == "grid_frac"')['model_code'].unique()
                     mask = df['model_code'].isin(models_with_gridsearch) & (df['grid_frac'] == 1)
                     df.loc[mask, 'model_code'] = df.loc[mask, 'model_code'].str.replace('_gf_1', '') + '_gf_1'
@@ -334,7 +336,7 @@ def load_results_experiment_id(experiment_code_list, dataset_results_path):
                                                                         'oracle_execution_times_', 'grid_oracle_times',
                                                                         'last_iter_', 'best_gap_', 'best_iter_',
                                                                         'grid_frac'
-                                                                        'time_oracles','eps']] = np.nan
+                                                                        'time_oracles', 'eps']] = np.nan
 
                 df_list.append(df)
     all_df = pd.concat(df_list)
@@ -395,7 +397,8 @@ def prepare_for_plot(df, grouping_col=None):
     time_aggregated_df = time_aggregated_df.rename(columns=column_rename_map_before_plot)
     new_numerical_cols = get_numerical_cols(time_aggregated_df)
     # convert to numeric all columns from new_numerical_cols that are not already numeric
-    time_aggregated_df[new_numerical_cols] = time_aggregated_df[new_numerical_cols].apply(pd.to_numeric, errors='ignore')
+    time_aggregated_df[new_numerical_cols] = time_aggregated_df[new_numerical_cols].apply(pd.to_numeric,
+                                                                                          errors='ignore')
     # # all datasets
     #     # Check available combinations
     # df[['base_model_code', 'constraint_code', 'dataset_name','exp_grid_ratio','exp_frac']].astype('str').apply(lambda x: '_'.join(x.astype(str)), axis=1).value_counts()
@@ -412,7 +415,7 @@ def prepare_for_plot(df, grouping_col=None):
     return mean_error_df
 
 
-def best_gap_filter_on_eta0(all_df):
+def best_gap_filter_on_eta0(all_df, cols_to_synch=cols_to_synch + ['max_iter']):
     f = lambda x: x[x['eta0'] == x.loc[x['best_gap_'].idxmin(), 'eta0']]
-    all_df = all_df.groupby(cols_to_synch + ['max_iter']).apply(f).reset_index(drop=True)
+    all_df = all_df.groupby(cols_to_synch).apply(f).reset_index(drop=True)
     return all_df
