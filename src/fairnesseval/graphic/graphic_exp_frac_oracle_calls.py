@@ -92,6 +92,25 @@ if __name__ == '__main__':
     sort_map = {name: i for i, name in enumerate(exp_frac_models)}
 
     dataset_results_path = os.path.join("results")
+    sample_rlp_false = utils_results_data.load_results_experiment_id(['e_s.0', 'e_s.1', 'e_m.0', 'e_m.1',
+                                                                      'e_l.fast', 'e_l.fast.2', ], dataset_results_path)
+    # where sumbsample is not none and add '_smart_sample' to the model_code and assign subsample to exp_frac
+    # add 'naive_sample' to the model_code where subsample is none and assign train_fraction to exp_frac
+    mask = sample_rlp_false['subsample'].notna()
+    sample_rlp_false.loc[mask, 'model_code'] = sample_rlp_false.loc[mask, 'model_code'] + '_smart_sample'
+    sample_rlp_false.loc[mask, 'exp_frac'] = sample_rlp_false.loc[mask, 'subsample']
+    sample_rlp_false.loc[~mask, 'model_code'] = sample_rlp_false.loc[~mask, 'model_code'] + '_naive_sample'
+    sample_rlp_false.loc[~mask, 'exp_frac'] = sample_rlp_false.loc[~mask, 'train_fractions']
+    sample_rlp_false['model_code'] = sample_rlp_false['model_code'] + ' max_iter=' + sample_rlp_false[
+        'max_iter'].astype(str)
+    # select only models with max_iter=50
+    sample_rlp_false = sample_rlp_false[sample_rlp_false['max_iter'] == 50]
+
+    sample_rlp_false = best_gap_filter_on_eta0(sample_rlp_false,
+                                               cols_to_synch=cols_to_synch + ['max_iter', 'exp_frac', 'model_code',
+                                                                              'phase'])
+
+    exp_frac_models += sample_rlp_false['model_code'].unique().tolist()
 
     all_df = utils_results_data.load_results_experiment_id(gf_1_conf, dataset_results_path).query(
         'dataset_name != "ACSEmployment"')
@@ -103,7 +122,7 @@ if __name__ == '__main__':
     # employment_df = employment_df[employment_df['model_code'].isin(grid_chart_models)]
     # employment_df.query('model_name == "hybrid_5" & base_model_code == "lr" & constraint_code== "eo" & dataset_name == "ACSEmployment"')
 
-    all_df = pd.concat([all_df, employment_df]).reset_index(drop=True)
+    all_df = pd.concat([all_df, employment_df, sample_rlp_false]).reset_index(drop=True)
 
     all_df = all_df.assign(model_sort=all_df['model_code'].map(sort_map)).sort_values(
         ['dataset_name', 'base_model_code', 'constraint_code', 'model_sort'],
@@ -117,31 +136,34 @@ if __name__ == '__main__':
     y_axis_list_long = y_axis_list_short + ['train_error', 'train_violation', 'avg_time_oracles', 'n_oracle_calls_',
                                             'time_oracles', 'ratio_fit_total']
     all_df = all_df.join(all_df[all_df['phase'] == 'expgrad_fracs']['oracle_execution_times_'].agg(
-        lambda x: pd.DataFrame(ast.literal_eval(x)).agg(sum)))
+        lambda x: pd.DataFrame(ast.literal_eval(x)).agg(sum)), rsuffix='_sum')
     all_df['ratio_fit_total'] = all_df['fit'] / all_df['time']
+    all_df = all_df[all_df['phase'] != 'evaluation']
     # select lgbm base_model_code  one of the larger data sets: in ACSEmployment, ACSPublicCoverage
-    x = all_df.query('exp_frac == 1 and model_code == "hybrid_7"')
-    ab = prepare_for_plot(x, 'exp_frac')
-    ab[['base_model_code', 'constraint_code', 'dataset_name', 'ratio_fit_total_mean', 'ratio_fit_total_error', 'eps',
-        'exp_frac', 'method', 'model_code', 'eps_mean',
-        'wts-con_mean', 'wts-con_error', 'time_mean', 'time_error',
-        'train_error_mean', 'train_error_error', 'fit_mean', 'fit_error', 'wts-obj_mean', 'wts-obj_error',
-        'train_DemographicParity_mean', 'train_DemographicParity_error',
-        'red-Y-W_mean', 'red-Y-W_error', 'exp_frac_mean', 'exp_frac_error', 'n_oracle_calls__mean',
-        'n_oracle_calls__error',
-        'avg_time_oracles_mean', 'avg_time_oracles_error', ]]
+    # x = all_df.query('exp_frac == 1 and model_code == "hybrid_7"')
+    # ab = prepare_for_plot(x, 'exp_frac')
+    # ab[['base_model_code', 'constraint_code', 'dataset_name', 'ratio_fit_total_mean', 'ratio_fit_total_error', 'eps',
+    #     'exp_frac', 'method', 'model_code', 'eps_mean',
+    #     'wts-con_mean', 'wts-con_error', 'time_mean', 'time_error',
+    #     'train_error_mean', 'train_error_error', 'fit_mean', 'fit_error', 'wts-obj_mean', 'wts-obj_error',
+    #     'train_DemographicParity_mean', 'train_DemographicParity_error',
+    #     'red-Y-W_mean', 'red-Y-W_error', 'exp_frac_mean', 'exp_frac_error', 'n_oracle_calls__mean',
+    #     'n_oracle_calls__error',
+    #     'avg_time_oracles_mean', 'avg_time_oracles_error', ]]
     y_lim_map = {'test_error': None, 'test_violation': (-0.01, 0.2), 'train_violation': (-0.01, 0.2),
                  'test_EqualizedOdds': (-0.01, 0.2)}
+    # filter
 
     for y_axis_list, suffix in [(y_axis_list_long, ''), (y_axis_list_short, '_v2'), ]:
         y_lim_list = [y_lim_map.get(x, None) for x in y_axis_list]
-        plot_all_df_subplots(all_df[all_df['phase'] != 'evaluation'], model_list=exp_frac_models,
+        plot_all_df_subplots(all_df, model_list=exp_frac_models,
                              chart_name='exp_frac' + suffix, grouping_col='exp_frac',
                              save=save, show=show, sharex=False, increasing_marker_size=False,
                              sharey=False, xlog=True,
                              ylim_list=y_lim_list,
                              axis_to_plot=list(itertools.product(['exp_frac'], y_axis_list)))
 
+    exit(0)
     gf_1_df = all_df
     """
      Loading sqrt only when needed. Avoid multiple version of same configs (eg. hybrid_5)
