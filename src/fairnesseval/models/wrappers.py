@@ -347,11 +347,21 @@ class ExponentiatedGradientPmf(ExponentiatedGradient):
         if 'constraint_code' in kwargs:
             kwargs.pop('constraint_code')
         constraint = utils_prepare_data.get_constraint(constraint_code=constraint_code, eps=eps)
+        self.original_kwargs = kwargs.copy()
+
+        self.subsample = kwargs.pop('subsample', None)
         super(ExponentiatedGradientPmf, self).__init__(base_model, constraints=copy.deepcopy(constraint), eps=eps,
-                                                       nu=1e-6, random_state=self.random_state,  **kwargs)
+                                                       nu=1e-6, **kwargs)
 
     def fit(self, X, y, sensitive_features, **kwargs):
-        return super().fit(X, y, sensitive_features=sensitive_features, **kwargs)
+        if self.subsample is not None and self.subsample < 1:
+            self.subsample = int(X.shape[0] * self.subsample)
+        elif self.subsample == 1:
+            self.subsample = None
+        if hasattr(X, 'values'):
+            X = X.values
+        return super().fit(X, y, sensitive_features=sensitive_features, random_state=self.random_state,
+                           subsample = self.subsample, **kwargs)
 
     def predict(self, X):
         return self._pmf_predict(X)[:, 1]
