@@ -4,7 +4,7 @@ import json
 import pandas as pd
 
 ADULT_ACS_PUBLIC_COVERAGE_ = ['adult', 'ACSPublicCoverage']
-ACS_SELECTED_DATASETS = ['ACSPublicCoverage', 'ACSEmployment']
+ACS_SELECTED_DATASETS = ['ACSPublicCoverage', 'ACSEmployment', ]
 
 ACS_dataset_names = [
     'ACSPublicCoverage',  # 1138289
@@ -45,8 +45,22 @@ eta_params_v1 = json.dumps({'eta0': [0.5, 1.0, 2.0], 'run_linprog_step': [False]
                             'max_iter': [5, 10, 20, 50, 100]})
 eta_params_restricted_v1 = json.dumps({'eta0': [2.0], 'run_linprog_step': [False],
                                        'max_iter': [50]})
+
 eta_params_restricted_v2 = json.dumps({'eta0': [2.0], 'run_linprog_step': [False],
                                        'max_iter': [100]})
+eta_params_restricted_v3 = {'eta0': [0.5, 1.0, 2.0], 'run_linprog_step': [False],
+                            'max_iter': [50]}
+expgrad_sample_params_small_v1 = json.dumps({'eta0': [0.5, 1.0, 2.0], 'run_linprog_step': [False], 'max_iter': [20, 50],
+                                             'eps': BASE_EPS_V1, 'constraint_code': ['dp', 'eo'],
+                                             'subsample': TRAIN_FRACTIONS_SMALLER_DATASETS_v1})
+expgrad_sample_params_medium_v1 = json.dumps(
+    {'eta0': [0.5, 1.0, 2.0], 'run_linprog_step': [False], 'max_iter': [20, 50],
+     'eps': BASE_EPS_V1, 'constraint_code': ['dp', 'eo'],
+     'subsample': TRAIN_FRACTIONS_v1})
+expgrad_params_restricted_v3 = json.dumps({'eta0': [0.5, 1.0, 2.0], 'run_linprog_step': [False], 'max_iter': [20, 50],
+                                           'eps': BASE_EPS_V1, 'constraint_code': ['dp', 'eo'],
+                                           })
+FAIR2_SAVE_PATH = '/home/fairlearn/content/drive/Shareddrives/SoftLab/Projects/Fairness/scalable-fairlearn/results/fairlearn-2'
 
 experiment_configurations = [
     {'experiment_id': 's_h_1.0.TEST',
@@ -581,6 +595,15 @@ experiment_configurations = [
      'constraint_code': 'eo',
      'model_params': eta_params_restricted_v1,
      },
+    {'experiment_id': 'rlp_F_ACS.1',
+     'dataset_names': ACS_SELECTED_DATASETS,
+     'model_names': ['fairlearn_full'],
+     'base_model_code': ['lr'],
+     'random_seeds': RANDOM_SEEDs_RESTRICTED_V1,
+     'train_test_fold': RANDOM_SEEDs_RESTRICTED_V1,
+     'model_params': eta_params_restricted_v3 | dict(constraint_code=['dp', 'eo'],
+                                                     eps=EPS_LIST_V2),
+     },
     {'experiment_id': 'f_eta0_eps.3P',
      'dataset_names': ['ACSPublicCoverage'],
      'model_names': ['fairlearn_full'],
@@ -725,6 +748,78 @@ experiment_configurations = [
      'random_seeds': RANDOM_SEEDS_v1,
      'train_test_seeds': RANDOM_SEEDS_v1,
      'constraint_code': 'eo',
+     },
+    {'experiment_id': 'e_s.0',  # doing
+     'dataset_names': ['german', 'compas', ],
+     'model_names': ['fairlearn_full'],
+     'random_seeds': RANDOM_SEEDS_v1,
+     'model_params': expgrad_sample_params_small_v1,
+     'base_model_code': ['lr', 'lgbm'],
+     'params': ['--debug'],
+     },
+    {'experiment_id': 'e_s.1',  # todo
+     'dataset_names': ['german', 'compas', ],
+     'model_names': ['fairlearn_full'],
+     'random_seeds': RANDOM_SEEDS_v1,
+     'model_params': expgrad_params_restricted_v3,
+     'base_model_code': ['lr', 'lgbm'],
+     'params': ['--debug'],
+     'train_fraction': TRAIN_FRACTIONS_SMALLER_DATASETS_v1,
+     },
+    {'experiment_id': 'e_m.0',  # todo
+     'dataset_names': ['adult'],
+     'model_names': ['fairlearn_full'],
+     'random_seeds': RANDOM_SEEDS_v1,
+     'model_params': expgrad_sample_params_medium_v1,
+     'base_model_code': ['lr', 'lgbm'],
+     'params': ['--debug'],
+     },
+    {'experiment_id': 'e_m.1',  # todo
+     'dataset_names': ['adult', ],
+     'model_names': ['fairlearn_full'],
+     'random_seeds': RANDOM_SEEDS_v1,
+     'model_params': expgrad_params_restricted_v3,
+     'base_model_code': ['lr', 'lgbm'],
+     'params': ['--debug'],
+     'train_fraction': TRAIN_FRACTIONS_v1,
+     },
+    {'experiment_id': 'e_l.0',  # todo
+     'dataset_names': ACS_SELECTED_DATASETS,
+     'model_names': ['fairlearn_full'],
+     'random_seeds': RANDOM_SEEDS_v1,
+     'model_params': expgrad_sample_params_medium_v1,
+     'base_model_code': ['lr', 'lgbm'],
+     'params': ['--debug'],
+     },
+    {'experiment_id': 'e_l.fast',  # todo
+     'dataset_names': ACS_SELECTED_DATASETS,
+     'model_names': ['fairlearn_full'],
+     'random_seeds': RANDOM_SEEDs_RESTRICTED_V1,
+     'train_fraction': TRAIN_FRACTIONS_v1,
+     'model_params': json.dumps(
+         {'eta0': [0.5, 1.0, 2.0], 'run_linprog_step': [False], 'max_iter': [20, 50],
+          'eps': BASE_EPS_V1, 'constraint_code': ['dp', 'eo'], }),
+     'base_model_code': ['lr'],
+     'params': ['--debug'],
+     'train_test_fold': [0],
+     },
+    {'experiment_id': 'e_l.fast.2',  # todo
+     'dataset_names': ACS_SELECTED_DATASETS,
+     'model_names': ['fairlearn_full'],
+     'random_seeds': RANDOM_SEEDs_RESTRICTED_V1,
+     'model_params': expgrad_sample_params_medium_v1,
+     'base_model_code': ['lr'],
+     'params': ['--debug'],
+     'train_test_fold': [0],
+     },
+    {'experiment_id': 'e_l.1',  # todo
+     'dataset_names': ACS_SELECTED_DATASETS,
+     'model_names': ['fairlearn_full'],
+     'random_seeds': RANDOM_SEEDS_v1,
+     'model_params': expgrad_params_restricted_v3,
+     'base_model_code': ['lr', 'lgbm'],
+     'params': ['--debug'],
+     'train_fraction': TRAIN_FRACTIONS_v1,
      },
 
     {'experiment_id': 'acs_h_eps_1.0',  # done
@@ -1257,7 +1352,6 @@ cols_to_unstack = set(config_values_dict.keys()) - set(['vary'])
 df = pd.DataFrame(configurations_matrix)
 df['state'] = 'todo'
 df['exp_name'] = ''
-
 
 # df.pivot(index=['vary'], columns=cols_to_unstack, values=['state', 'exp_name'])
 # df.to_csv('run_experiments/experiment_matrix_state.csv')

@@ -70,9 +70,18 @@ done_conf = [
     'f_eta0_eps.4E',
     'f_eta0_eps.4.2E',
     'f_eta0_eps.3.2E',
+    'e_s.1',
+    'e_s.0',
+    'e_m.0',
+    'e_m.1',
+    'e_l.fast',
+    'e_l.0',
+    'e_l.1',
+
+    'e_l.fast.2',
 
     # doing in fairlearn-2
-    'demo.0.1',
+    'rlp_F_ACS.1',
 
     # done on fairlearn-3
     's_zDI_1.2',
@@ -121,13 +130,11 @@ if __name__ == "__main__":
     conf_todo = [
         # next on fairlearn-2
         # next on fairlearn-3
-
         # 'acsER_binB2.1r',
         # "demo.x.test",
-        'new_experiment',
-        'demo.1.test',
+
         # 'demo.C.1r',
-        # 'demo.C.1r',
+
         # testing
         # 'acs_h_gs1_1.test',
         # 'f_eta0_1.0.test',
