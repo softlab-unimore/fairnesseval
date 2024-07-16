@@ -336,8 +336,8 @@ class ThresholdOptimizerWrapper(ThresholdOptimizer):
 
 
 class ExponentiatedGradientPmf(ExponentiatedGradient):
-    def __init__(self, base_model, constraint_code, eps, random_state, run_linprog_step=None, eta0=None,
-                 method_str='fairlearn_full', datasets=None, **kwargs):
+    def __init__(self, base_model, eps, random_state, run_linprog_step=None, eta0=None,
+                 method_str='fairlearn_full', datasets=None, constraint_code=None, constraint=None, **kwargs):
         self.method_str = method_str
         self.random_state = random_state
         if eta0 is not None:
@@ -346,12 +346,17 @@ class ExponentiatedGradientPmf(ExponentiatedGradient):
             kwargs['run_linprog_step'] = run_linprog_step
         if 'constraint_code' in kwargs:
             kwargs.pop('constraint_code')
-        constraint = utils_prepare_data.get_constraint(constraint_code=constraint_code, eps=eps)
+        if constraint is None:
+            if constraint_code is None:
+                assert False, 'constraint_code or constraint should be provided'
+            constraint = utils_prepare_data.get_constraint(constraint_code=constraint_code, eps=eps)
+        if 'nu' not in kwargs:
+            kwargs['nu'] = 1e-6
         self.original_kwargs = kwargs.copy()
 
         self.subsample = kwargs.pop('subsample', None)
         super(ExponentiatedGradientPmf, self).__init__(base_model, constraints=copy.deepcopy(constraint), eps=eps,
-                                                       nu=1e-6, **kwargs)
+                                                       **kwargs)
 
     def fit(self, X, y, sensitive_features, **kwargs):
         if self.subsample is not None and self.subsample < 1:

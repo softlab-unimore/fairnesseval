@@ -40,38 +40,39 @@ def solve_linprog(errors=None, gammas=None, eps=0.05, nu=1e-6, pred=None):
     return Q
 
 
-def _pmf_predict(X, predictors, weights):
+def _pmf_predict(X, predictors, weights, random_state=None):
     pred_dict = {}
     for t in range(len(predictors)):
-        pred_dict[t] = predictors[t].predict(X)
+        # if random state is in predictor signature of predict, pass it
+        if 'random_state' in predictors[t].predict.__code__.co_varnames:
+            pred_dict[t] = predictors[t].predict(X, random_state=random_state)
+        else:
+            pred_dict[t] = predictors[t].predict(X)
     pred = pd.DataFrame(pred_dict)
-    positive_probs = pred[weights.index].dot(weights).to_frame()
-    return np.concatenate((1 - positive_probs, positive_probs), axis=1)
+    positive_probs = pred[weights.index].dot(weights.values).to_frame()
+    return np.concatenate([1 - positive_probs, positive_probs], axis=1)
 
 
-class ExponentiatedGradientPmf(ExponentiatedGradient):
-    def fit(self, X, y, sensitive_features,  **kwargs):
-        super().fit(X, y, sensitive_features=sensitive_features, **kwargs)
 
-    def predict(self, X, random_state=None):
-        return self._pmf_predict(X)[:, 1]
 
 
 class Hybrid5(BaseEstimator):
 
-    def __init__(self, constraint, expgrad_frac=None, eps=None, unconstrained_model=None):
+    def __init__(self, constraint, expgrad_frac=None, eps=None, unconstrained_model=None, random_state=None):
         self.constraint = constraint
         self.expgrad_logistic_frac = expgrad_frac
         self.eps = eps
         self.unconstrained_model = unconstrained_model
-
+        self.random_state = random_state
         self.add_exp_predictors = False
 
     def fit_expgrad(self, X, y, sensitive_features):
         expgrad_frac = ExponentiatedGradient(LogisticRegression(solver='liblinear', fit_intercept=True),
                                              constraints=self.constraint, eps=self.eps, nu=1e-6)
         print("Fitting ExponentiatedGradient on subset...")
-        expgrad_frac.fit(X, y, sensitive_features=sensitive_features)
+        if hasattr(X, 'values'):
+            X = X.values
+        expgrad_frac.fit(X, y, sensitive_features=sensitive_features, random_state=self.random_state)
         self.expgrad_logistic_frac = expgrad_frac
 
     def get_error_violation(self, X, y, sensitive_features, predictors):
@@ -110,7 +111,7 @@ class Hybrid5(BaseEstimator):
         return self
 
     def predict(self, X):
-        return _pmf_predict(X, self.predictors, self.weights)[:, 1]
+        return _pmf_predict(X, self.predictors, self.weights, random_state=self.random_state)[:, 1]
 
     def concat_predictors(self):
         if self.add_exp_predictors is not None and self.add_exp_predictors == True:
@@ -136,8 +137,11 @@ class Hybrid1(Hybrid5):
             self.fit_expgrad(X, y, sensitive_features)
         self.grid_search_frac = GridSearch(subsample=self.subsample, random_state=self.random_state,
                                            estimator=self.base_model, constraints=self.constraint,
-                                           grid=self.expgrad_logistic_frac.lambda_vecs_)
+                                           grid=self.expgrad_logistic_frac.lambda_vecs_ # Gives error
+                                           )
         # _lambda_vecs_lagrangian  # fairlearn==0.4
+        if hasattr(X, 'values'):
+            X = X.values
         self.grid_search_frac.fit(X, y, sensitive_features=sensitive_features)
 
     def fit(self, X, y, sensitive_features):
