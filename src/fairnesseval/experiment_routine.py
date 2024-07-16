@@ -79,9 +79,9 @@ done_conf = [
     'e_l.1',
 
     'e_l.fast.2',
+    'rlp_F_ACS.1',
 
     # doing in fairlearn-2
-    'rlp_F_ACS.1',
 
     # done on fairlearn-3
     's_zDI_1.2',
@@ -110,8 +110,6 @@ done_conf = [
     'demo.2.1r',
     'demo.A.1r',
     # to update on fairlearn-3
-
-    # doing on fairlearn-3
     'acsER_binB1.1Mr',
     'acsER_binB1.1r',
     'acsER_binB2.0r',
@@ -123,6 +121,8 @@ done_conf = [
     'demo.B1r',
     'demo.D.0r',
 
+    # doing on fairlearn-3
+
 ]
 
 if __name__ == "__main__":
@@ -132,9 +132,9 @@ if __name__ == "__main__":
         # next on fairlearn-3
         # 'acsER_binB2.1r',
         # "demo.x.test",
+        'exp_h_eps_PUB.1r',
 
         # 'demo.C.1r',
-
         # testing
         # 'acs_h_gs1_1.test',
         # 'f_eta0_1.0.test',
