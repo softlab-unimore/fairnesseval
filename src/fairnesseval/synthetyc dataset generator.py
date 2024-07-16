@@ -92,7 +92,7 @@ def main():
 
 if __name__ == '__main__':
     original_argv = sys.argv.copy()
-    kwargs = {'n_samples': int(1e9),
+    kwargs = {'n_samples': int(1e8),
               'n_features': 5,
               'group_values': [0, 1],
               'group_probabilities': [0.55, 0.45],

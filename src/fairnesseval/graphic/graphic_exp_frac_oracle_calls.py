@@ -43,10 +43,10 @@ if __name__ == '__main__':
         'acsE_h_gs1_1.2r',  # DP | lgbm  |   Employment seed 1
 
         'acsE_h_gs1_EO_1.0r',  # EO |   lr  |   Employment replicated
-        'acsE_h_gs1_EO_1.1r'  # EO | lgbm  |   Employment replicated
+        'acsE_h_gs1_EO_1.1r',  # EO | lgbm  |   Employment replicated
 
-        # 'acs_h_gs1_1.1',        # DP | lgbm  |   Employment not replicated
-        # 'acs_h_gs1_EO_2.0',     # EO | lgbm  |   Employment not replicated
+        # 'acs_h_gs1_1.1',      # DP | lgbm  |   Employment not replicated
+        # 'acs_h_gs1_EO_2.0',   # EO | lgbm  |   Employment not replicated
         # 'acsE_h_gs1_1.0',     # DP |   lr  |   Employment not replicated
         # 'acs_h_gs1_EO_1.0',   # EO |   lr  |   Employment not replicated
     ]

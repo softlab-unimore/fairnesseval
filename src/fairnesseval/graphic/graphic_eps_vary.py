@@ -44,14 +44,15 @@ if __name__ == '__main__':
 
     ]
     rlp_false_conf_list = [
-        'f_eta0_eps.1',
-        'f_eta0_eps.2',
-        'f_eta0_eps.3P',
-        'f_eta0_eps.4P',
-        'f_eta0_eps.3E',
-        'f_eta0_eps.4E',
-        'f_eta0_eps.4.2E',
-        'f_eta0_eps.3.2E',
+        'f_eta0_eps.1',         # small | eps2 | LR | DP | eta1
+        'f_eta0_eps.2',         # small | eps2 | LR | EO | eta1
+        # 'f_eta0_eps.3P',      # PUB   | eps2 | LR | DP | eta1
+        # 'f_eta0_eps.4P',      # PUB   | eps2 | LR | EO | eta1
+        # 'f_eta0_eps.3E',      # EMP   | eps2 | LR | DP | eta1
+        # 'f_eta0_eps.4E',      # EMP   | eps2 | LR | EO | eta1
+        # 'f_eta0_eps.4.2E',    # EMP,g | eps2 | LR | EO | eta2
+        # 'f_eta0_eps.3.2E',    # EMP,g | eps2 | LR | DP | eta2
+        'rlp_F_ACS.1',          # P+E   | eps2 | LR | DP EO | eta3
 
     ]
 
