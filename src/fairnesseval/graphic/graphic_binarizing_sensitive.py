@@ -145,6 +145,21 @@ if __name__ == '__main__':
             graphic_utility.bar_plot_function_by_model(df=mean_error_df[mean_error_df['constraint_code'] == cc], ax=ax,
                                                        fig=fig,
                                                        y_axis_list=y_axis_list)
+            legend = ax.get_legend()
+            labels = (x.get_text() for x in legend.get_texts())
+            ax.get_legend().remove()
+            # set x label as t_constraint
+            ax.set_xlabel(graphic_utility.replace_words(y_axis_list[0].split()[0]).replace('\n',' '), fontsize=10)
+
+        new_labels = [x.replace('Demographic parity', '').replace('Equalized odds', '').replace('\n', '').replace('difference on test data','') for x in
+                      labels]
+        fig.legend(legend.legendHandles, new_labels,
+                   ncol=min(7, len(y_axis_list)),
+                   loc='upper center',
+                   bbox_to_anchor=(0.5, 0.0),
+                   bbox_transform=fig.transFigure,
+                   fontsize=10,
+                   )
         if show:
             fig.show()
         pl_util.save_figure(additional_dir_path='all_df', name=f'binary' + suffix, fig=fig)

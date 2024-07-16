@@ -435,20 +435,13 @@ def bar_plot_function_by_model(df, ax, fig: plt.figure, name_col='model_code', y
     df = df.rename(columns=dict(zip(orig_y_axis_list + '_error', y_axis_list + '_error')))
     yerr = df[y_axis_list + '_error']
     yerr.columns = y_axis_list
-
     df[yerr.columns].plot.bar(yerr=yerr, rot=0, fontsize=10, ax=ax)
-    legend = ax.get_legend()
-    labels = (x.get_text() for x in legend.get_texts())
-    ax.get_legend().remove()
-    fig.legend(legend.legendHandles, labels,
-               ncol=min(7, len(y_axis_list)),
-               loc='upper center',
-               bbox_to_anchor=(0.5, 0.0),
-               bbox_transform=fig.transFigure,
-               fontsize=10,
-               )
-    ax.set_xlabel('')
+    # ax.set_xlabel('')
     # ax.set_ylabel(ylabel)
+
+
+
+
 
 
 def phase_time_vs_frac(df, ax, fig, y_log=True):
@@ -678,7 +671,7 @@ def plot_all_df_subplots(all_df, model_list, chart_name, save, show=True, groupi
             else:
                 fig.legend(handles, labels, ncol=min(7, len(labels)),
                            loc='upper center',
-                           bbox_to_anchor=(0.5, 0.0),
+                           bbox_to_anchor=(0.5, -0.02),
                            bbox_transform=fig.transFigure,
                            # borderaxespad=-2,
                            fontsize=10,
@@ -690,16 +683,17 @@ def plot_all_df_subplots(all_df, model_list, chart_name, save, show=True, groupi
                 ax.set_ylabel('')
                 # ax.label_outer()
             xlabels = []
+            for ax in axes_array[:, :].flat:
+                xlabels.append(ax.get_xlabel())
 
-            if sharex:
+            if sharex or len(np.unique(xlabels)) == 1:
                 for ax in axes_array[:, :].flat:
-                    xlabels.append(ax.get_xlabel())
                     ax.set_xlabel('')
                 # for ax in axes_array[:-1, :].flat:
                 #     ax.xaxis.set_ticklabels([])
                 fig.tight_layout()
                 if np.unique(xlabels).size == 1:
-                    fig.supxlabel(xlabels[0].replace('\n', ' '), y=0, va='baseline', fontsize='small')
+                    fig.supxlabel(xlabels[0].replace('\n', ' '), y=-.015, va='baseline', fontsize='small')
 
             # pl_util.fig.suptitle(StyleUtility.replace_words(f'{base_model_code} - {constraint_code}'))
             # fig.subplots_adjust(bottom=0.1)
