@@ -123,16 +123,17 @@ done_conf = [
 
     # doing on fairlearn-3
 
+    'exp_h_eps_PUB.1r',
 ]
 
 if __name__ == "__main__":
 
     conf_todo = [
+        'demo.1.test',
         # next on fairlearn-2
         # next on fairlearn-3
         # 'acsER_binB2.1r',
         # "demo.x.test",
-        'exp_h_eps_PUB.1r',
 
         # 'demo.C.1r',
         # testing
