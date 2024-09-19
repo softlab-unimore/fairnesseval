@@ -91,7 +91,7 @@ def adult(display=False):
 
 
 def check_download_dataset(dataset_name='compas'):
-    aif360_data_path = os.path.join(os.path.dirname(os.path.abspath(aif360.__file__)),  'data', 'raw',)
+    aif360_data_path = os.path.join(os.path.dirname(os.path.abspath(aif360.__file__)), 'data', 'raw', )
     if 'compas' in dataset_name:
         compas_raw_data_github_url = 'https://raw.githubusercontent.com/propublica/compas-analysis/master/compas-scores-two-years.csv'
         compas_path = os.path.join(aif360_data_path, 'compas', )
@@ -172,7 +172,6 @@ def load_convert_dataset_aif360(dataset_name='compas', remove_sensitive_attribut
         X = X.drop(dataset_orig.protected_attribute_names, axis=1)
     ret_dict['df'] = dict(zip(['X', 'y', 'A'], [X, y, A]))
     return X, y, A, dataset_orig
-
 
 
 def split_dataset_aif360(aif360_dataset: aif360.datasets.StandardDataset, train_test_seed):
@@ -422,5 +421,5 @@ split_strategy_map = {
 }
 
 
-def split_dataset_generator(dataset_str, datasets, train_test_seed, split_strategy, test_size):
-    return split_strategy_map[split_strategy](datasets, train_test_seed, test_size)
+def split_dataset_generator(dataset_str, datasets, train_test_seed, split_strategy, test_size, **kwargs):
+    return split_strategy_map[split_strategy](datasets, train_test_seed, test_size, **kwargs)

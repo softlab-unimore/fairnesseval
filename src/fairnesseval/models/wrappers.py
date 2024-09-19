@@ -354,7 +354,6 @@ class ExponentiatedGradientPmf(ExponentiatedGradient):
             kwargs['nu'] = 1e-6
         self.original_kwargs = kwargs.copy()
 
-        self.subsample = kwargs.pop('subsample', None)
         super(ExponentiatedGradientPmf, self).__init__(base_model, constraints=copy.deepcopy(constraint), eps=eps,
                                                        **kwargs)
 
@@ -365,8 +364,7 @@ class ExponentiatedGradientPmf(ExponentiatedGradient):
             self.subsample = None
         if hasattr(X, 'values'):
             X = X.values
-        return super().fit(X, y, sensitive_features=sensitive_features, random_state=self.random_state,
-                           subsample = self.subsample, **kwargs)
+        return super(ExponentiatedGradientPmf, self).fit(X, y, sensitive_features=sensitive_features, **kwargs)
 
     def predict(self, X):
         return self._pmf_predict(X)[:, 1]
