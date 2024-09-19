@@ -48,11 +48,12 @@ def get_base_model(base_model_code, random_seed=0):
     return model
 
 
-def finetune_model(base_model_code, X, y, random_seed=0):
+def finetune_model(base_model_code, X, y, random_seed=0, params_grid=None):
     base_model = get_base_model(base_model_code=base_model_code, random_seed=random_seed)
-    parameters = get_model_parameter_grid(base_model_code=base_model_code)
+    if params_grid is None:
+        params_grid = get_model_parameter_grid(base_model_code=base_model_code)
     cv = RepeatedStratifiedKFold(n_splits=5, n_repeats=1, random_state=random_seed)
-    clf = GridSearchCV(base_model, parameters, cv=cv, n_jobs=1, scoring=['f1', 'accuracy'], refit='f1')
+    clf = GridSearchCV(base_model, params_grid, cv=cv, n_jobs=1, scoring=['f1', 'accuracy'], refit='f1')
     clf.fit(X, y)
     return clf
 

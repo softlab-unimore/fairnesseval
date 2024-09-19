@@ -305,6 +305,16 @@ class ExperimentRun(metaclass=Singleton):
                 self.data_dict['train_test_fold'] = train_test_fold
                 self.data_dict['random_seed'] = random_seed
                 params_to_iterate = {'train_fractions': self.prm['train_fractions'], }
+
+                if self.prm['model_params']['base_model_code'] is not None:
+                    params_grid = self.prm['model_params'].pop('base_model_grid_params', None)
+                    self.tuning_step(base_model_code=self.prm['model_params']['base_model_code'], X=X, y=y,
+                                     fractions=self.prm['train_fractions'],
+                                     random_seed=0,
+                                     redo_tuning=self.prm['redo_tuning'],
+                                     params_grid=params_grid
+                                     )  # TODO: random_seed=0 to simplify, may be corrected later.
+
                 # check that all values of model_params hasy type list or set or tuple, if not convert to list
                 for key, value in self.prm['model_params'].items():
                     if not isinstance(value, (list, set, tuple)):
@@ -315,12 +325,7 @@ class ExperimentRun(metaclass=Singleton):
                 for values in itertools.product(*params_to_iterate.values()):
                     all_params = dict(zip(params_keys, values))
                     self.data_dict.update(**all_params)
-                    if self.data_dict['base_model_code'] is not None:
-                        self.tuning_step(base_model_code=self.data_dict['base_model_code'], X=X, y=y,
-                                         fractions=prm['train_fractions'],
-                                         random_seed=0,
-                                         redo_tuning=prm[
-                                             'redo_tuning'])  # TODO: random_seed=0 to simplify, may be corrected later.
+
                     logging.info(f'Starting step: random_seed: {random_seed}, train_test_seed: {train_test_seed}, '
                                  f'train_test_fold: {train_test_fold} \n'
                                  + json.dumps(all_params, default=list))
@@ -400,8 +405,6 @@ class ExperimentRun(metaclass=Singleton):
         for t_key in keys:
             if t_key in prm_keys:
                 self.data_dict[t_key] = self.prm[t_key]
-            else:
-                self.data_dict[t_key] = 'empty'
 
     def run_hybrids(self, train_data: list, test_data: list, eps,
                     random_seed, grid_fractions=[1], expgrad_fractions=[1], base_model_code='lr',
@@ -842,7 +845,7 @@ class ExperimentRun(metaclass=Singleton):
         model.set_params(**best_params)
         return model
 
-    def tuning_step(self, base_model_code, X, y, fractions, random_seed=0, redo_tuning=False):
+    def tuning_step(self, base_model_code, X, y, fractions, random_seed=0, redo_tuning=False, params_grid=None):
         if base_model_code is None:
             print(f'base_model_code is None. Not starting finetuning.')
             return
@@ -859,11 +862,15 @@ class ExperimentRun(metaclass=Singleton):
             try:
                 grid_clf = joblib.load(path)
                 tmp = grid_clf.best_params_
+                if grid_clf.param_grid != params_grid:
+                    redo_tuning = True
+                    print(f'params_grid is different from the one used in the previous tuning. Redoing tuning...')
             except Exception as e:
                 print(f'Error in loading best params: {e}. Re-launching fine tuning...')
                 # delete file at path
                 if os.path.exists(path):
                     os.remove(path)
+
 
             if redo_tuning or not os.path.exists(path):
                 print(f'Starting finetuning of {base_model_code}')
@@ -873,9 +880,9 @@ class ExperimentRun(metaclass=Singleton):
                     sample_mask, _ = train_test_split(sample_mask, train_size=turn_frac, stratify=y,
                                                       random_state=random_seed, shuffle=True)
                 a = datetime.now()
-                clf = fe.models.finetune_model(base_model_code, pd.DataFrame(X).iloc[sample_mask],
-                                            pd.Series(y.ravel()).iloc[sample_mask],
-                                            random_seed=random_seed)
+                clf = fe.models.finetune_model(base_model_code, pd.DataFrame(X).iloc[sample_mask].values,
+                                               pd.Series(y.ravel()).iloc[sample_mask].values,
+                                               random_seed=random_seed, params_grid=params_grid)
                 b = datetime.now()
                 joblib.dump(clf, path, compress=1)
 
