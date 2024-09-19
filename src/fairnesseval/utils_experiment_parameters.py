@@ -23,6 +23,8 @@ bigger_selected_datasets = ['adult', 'ACSPublicCoverage', 'ACSEmployment']
 
 sigmod_datasets = ['adult_sigmod', 'compas', 'german', ]
 
+sigmod_datasets_no_SA = [x + '_no_SA' for x in sigmod_datasets]
+
 sigmod_dataset_map = dict(zip(['compas', 'german', 'adult_sigmod'], ['CompasDataset', 'GermanDataset', 'AdultDataset']))
 
 sigmod_datasets_aif360 = [x + '_aif360' for x in sigmod_datasets]
