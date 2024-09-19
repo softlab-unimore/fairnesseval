@@ -91,9 +91,10 @@ def adult(display=False):
 
 
 def check_download_dataset(dataset_name='compas'):
+    aif360_data_path = os.path.join(os.path.dirname(os.path.abspath(aif360.__file__)),  'data', 'raw',)
     if 'compas' in dataset_name:
         compas_raw_data_github_url = 'https://raw.githubusercontent.com/propublica/compas-analysis/master/compas-scores-two-years.csv'
-        compas_path = '/home/fairlearn/anaconda3/lib/python3.9/site-packages/aif360/data/raw/compas'
+        compas_path = os.path.join(aif360_data_path, 'compas', )
         compas_raw_path = compas_path + '/compas-scores-two-years.csv'
         if not os.path.exists(compas_raw_path):
             df = pd.read_csv(compas_raw_data_github_url)
@@ -101,11 +102,11 @@ def check_download_dataset(dataset_name='compas'):
             df.to_csv(compas_raw_path, index=False)
         return
     elif 'german' in dataset_name:
-        base_path = '/home/fairlearn/anaconda3/lib/python3.9/site-packages/aif360/data/raw/german/'
+        base_path = os.path.join(aif360_data_path, 'german')
         base_url = 'https://archive.ics.uci.edu/ml/machine-learning-databases/statlog/german/'
         file_names = ['german.data', 'german.doc']
     elif 'adult_sigmod' in dataset_name:
-        base_path = '/home/fairlearn/anaconda3/lib/python3.9/site-packages/aif360/data/raw/adult'
+        base_path = os.path.join(aif360_data_path, 'adult', )
         base_url = 'https://archive.ics.uci.edu/ml/machine-learning-databases/adult/'
         file_names = ['adult.data', 'adult.test', 'adult.names']
     else:
@@ -113,6 +114,7 @@ def check_download_dataset(dataset_name='compas'):
     for file_name in file_names:
         turn_path = os.path.join(base_path, file_name)
         if not os.path.exists(turn_path):
+            print(f'Downloading {file_name} in {turn_path} because it was not found.')
             os.makedirs(base_path, exist_ok=True)
             response = requests.get(base_url + file_name)
             open(turn_path, "wb").write(response.content)
@@ -132,7 +134,7 @@ def convert_from_aif360_to_df(dataset, dataset_name=None):
     return X, y, A
 
 
-def load_convert_dataset_aif360(dataset_name='compas'):
+def load_convert_dataset_aif360(dataset_name='compas', remove_sensitive_attribute=False):
     ret_dict = {}
     check_download_dataset(dataset_name)
     if 'compas' in dataset_name:
@@ -166,8 +168,11 @@ def load_convert_dataset_aif360(dataset_name='compas'):
         raise_dataset_name_error(dataset_name)
     # ret_dict['aif360_dataset'] = dataset_orig
     X, y, A = convert_from_aif360_to_df(dataset_orig, dataset_name)
+    if remove_sensitive_attribute:
+        X = X.drop(dataset_orig.protected_attribute_names, axis=1)
     ret_dict['df'] = dict(zip(['X', 'y', 'A'], [X, y, A]))
     return X, y, A, dataset_orig
+
 
 
 def split_dataset_aif360(aif360_dataset: aif360.datasets.StandardDataset, train_test_seed):
@@ -284,6 +289,8 @@ def get_dataset(dataset_str, prm=None):
         return load_convert_dataset_aif360(dataset_str)
     elif dataset_str in fe.utils_experiment_parameters.ACS_dataset_names:
         return load_transform_ACS(dataset_str=dataset_str, states=prm['states'])
+    elif dataset_str in fe.utils_experiment_parameters.sigmod_datasets_no_SA:
+        return load_convert_dataset_aif360(dataset_str, remove_sensitive_attribute=True)
     else:
         raise_dataset_name_error(dataset_str)
 
@@ -320,39 +327,40 @@ def preprocess_dataset(datasets, prm):
     return preprocessing_function_map[prm['preprocessing']](datasets)
 
 
-
 def StratifiedKFold_on_original_attr(datasets, train_test_seed, test_size, n_splits=3):
-        data_values = DataValuesSingleton()
-        skf = StratifiedKFold(n_splits=n_splits, shuffle=True,
-                              random_state=train_test_seed)  # todo add to prm the number of splits
-        X, y, A = datasets[:3]
-        to_stratify = pd.Series(A).astype(str) + '_' + pd.Series(y).astype(str)
-        if data_values.original_sensitive_attr is not None:
-            # When using a processed sensitive attribute the stratification is still
-            # done on the original sensitive attribute
-            A_orig = data_values.original_sensitive_attr
-            to_stratify = pd.Series(A_orig).astype(str) + '_' + pd.Series(y).astype(str)
-        for train_index, test_index in skf.split(X, to_stratify):
-            datasets_divided = []
-            for turn_index in [train_index, test_index]:  # train test split of datasets
-                datasets_divided.append([df.iloc[turn_index] for df in [X, y, A]])
-            data_values.set_train_test_index(train_index=train_index, test_index=test_index)
-            yield datasets_divided
+    data_values = DataValuesSingleton()
+    skf = StratifiedKFold(n_splits=n_splits, shuffle=True,
+                          random_state=train_test_seed)  # todo add to prm the number of splits
+    X, y, A = datasets[:3]
+    to_stratify = pd.Series(A).astype(str) + '_' + pd.Series(y).astype(str)
+    if data_values.original_sensitive_attr is not None:
+        # When using a processed sensitive attribute the stratification is still
+        # done on the original sensitive attribute
+        A_orig = data_values.original_sensitive_attr
+        to_stratify = pd.Series(A_orig).astype(str) + '_' + pd.Series(y).astype(str)
+    for train_index, test_index in skf.split(X, to_stratify):
+        datasets_divided = []
+        for turn_index in [train_index, test_index]:  # train test split of datasets
+            datasets_divided.append([df.iloc[turn_index] for df in [X, y, A]])
+        data_values.set_train_test_index(train_index=train_index, test_index=test_index)
+        yield datasets_divided
+
 
 def stratified_train_test_split_on_original_attr(datasets, train_test_seed, test_size):
-        data_values = DataValuesSingleton()
-        X, y, A = datasets[:3]
-        to_stratify = pd.concat([A, y], axis=1).astype('category').apply(lambda x: '_'.join(x.astype(str)), axis=1)
-        sample_mask = np.arange(X.shape[0])
-        train_index, test_index = train_test_split(sample_mask, test_size=test_size, stratify=to_stratify,
-                                                   random_state=train_test_seed, shuffle=True)
+    data_values = DataValuesSingleton()
+    X, y, A = datasets[:3]
+    to_stratify = pd.concat([A, y], axis=1).astype('category').apply(lambda x: '_'.join(x.astype(str)), axis=1)
+    sample_mask = np.arange(X.shape[0])
+    train_index, test_index = train_test_split(sample_mask, test_size=test_size, stratify=to_stratify,
+                                               random_state=train_test_seed, shuffle=True)
 
-        datasets_divided = []
-        for turn_index in [train_index, test_index]:
-            datasets_divided.append([df.iloc[turn_index] for df in [X, y, A]])
-        data_values.train_index = train_index
-        data_values.test_index = test_index
-        yield datasets_divided
+    datasets_divided = []
+    for turn_index in [train_index, test_index]:
+        datasets_divided.append([df.iloc[turn_index] for df in [X, y, A]])
+    data_values.train_index = train_index
+    data_values.test_index = test_index
+    yield datasets_divided
+
 
 def split_X_y_A(df: pd.DataFrame):
     return [df.iloc[:, :-2], df.iloc[:, -2], df.iloc[:, -1]]
@@ -395,7 +403,6 @@ class DataValuesSingleton(metaclass=Singleton):
 
     def set_original_sensitive_attr(self, original_sensitive_attr):
         self.original_sensitive_attr = deepcopy(original_sensitive_attr)
-
 
 
 # metrics_code_map = {
