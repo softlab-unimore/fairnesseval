@@ -282,6 +282,7 @@ def find_privileged_unprivileged(X, y, sensitive_features):
 
 
 def get_dataset(dataset_str, prm=None):
+    dataset_params = prm['dataset_params'] # can be passed to the dataset loader
     if dataset_str == "adult":
         return load_transform_Adult()
     elif dataset_str in fe.utils_experiment_parameters.sigmod_datasets + fe.utils_experiment_parameters.sigmod_datasets_aif360:

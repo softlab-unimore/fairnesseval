@@ -118,7 +118,6 @@ def launch_experiment_by_config(exp_dict: dict):
     logging.info(f'Parameters of experiment {experiment_id}\n' +
                  json.dumps(exp_dict_orig, default=list).replace(', \"', ',\n\t\"'))
 
-
     a = datetime.now()
     logging.info(f'Started logging.')
     to_iter = itertools.product(base_model_code_list, dataset_name_list, model_name_list)
@@ -182,7 +181,8 @@ class ExperimentRun(metaclass=Singleton):
         arg_parser.add_argument("--experiment_id", default=None, help='experiment_id of the experiment to run.')
         arg_parser.add_argument('--dataset_name', nargs='+', required=True, help='list of dataset names.')
         arg_parser.add_argument('--model_name', nargs='+', required=True, help='list of model names.')
-        arg_parser.add_argument('--results_path', default=None, help='path to save results. default at results/hostname')
+        arg_parser.add_argument('--results_path', default=None,
+                                help='path to save results. default at results/hostname')
         arg_parser.add_argument("--train_fractions", nargs='+', type=float, default=[1],
                                 help='list of fractions to be used for training')
         arg_parser.add_argument("--random_seeds", help='list of random seeds to use. (aka random_state) '
@@ -216,12 +216,15 @@ class ExperimentRun(metaclass=Singleton):
                                 help='dict with key, value pairs of model hyper parameter names (key) and list of values to'
                                      ' be iterated (values). When multiple list of parameters are specified the cross'
                                      ' product is used to generate all the combinations to test.')
+        arg_parser.add_argument("--dataset_params", default={}, type=json.loads,
+                                help='dict with key, value pairs of dataset parameter names (key) and list of values to'
+                                     ' be iterated (values). When multiple list of parameters are specified the cross'
+                                     ' product is used to generate all the combinations to test.')
 
         arg_parser.add_argument("--debug", action="store_true", default=False,
                                 help='debug mode if set, the program will stop at the first exception.')
 
         arg_parser.add_argument("--states", nargs='+', type=str)
-
 
         # For Fairlearn and Hybrids # todo remove
         arg_parser.add_argument("--eps", nargs='+', type=float, default=None)
@@ -230,7 +233,7 @@ class ExperimentRun(metaclass=Singleton):
         arg_parser.add_argument("--expgrad_fractions", nargs='+', type=float, default=None)
         arg_parser.add_argument("--grid_fractions", nargs='+', type=float, default=None)
         arg_parser.add_argument("--exp_grid_ratio", choices=['sqrt', None], default=None, nargs='+')
-        arg_parser.add_argument("--no_exp_subset", action="store_false", default=True, dest='exp_subset')
+        arg_parser.add_argument("--no_exp_subset", action="store_false", default=None, dest='exp_subset')
         arg_parser.add_argument("--no_run_linprog_step", default=None, dest='run_linprog_step', action='store_false')
         arg_parser.add_argument("--base_model_code", default=None)
 
@@ -293,7 +296,6 @@ class ExperimentRun(metaclass=Singleton):
                 train_test_seed = original_random_seed
             self.set_base_data_dict()
 
-
             for train_test_fold, datasets_divided in tqdm(enumerate(
                     utils_prepare_data.split_dataset_generator(self.dataset_str, datasets, train_test_seed,
                                                                prm['split_strategy'], test_size=prm['test_size']))):
@@ -348,7 +350,7 @@ class ExperimentRun(metaclass=Singleton):
             except:
                 pass
             model_params = dict(grid_fractions=self.data_dict['grid_fractions'],
-                                exp_subset=self.data_dict['exp_subset'],
+                                exp_subset=self.data_dict.get('exp_subset', True),
                                 exp_grid_ratio=self.data_dict['exp_grid_ratio'],
                                 run_linprog_step=self.data_dict['run_linprog_step'],
                                 random_seed=random_seed,
@@ -397,10 +399,10 @@ class ExperimentRun(metaclass=Singleton):
             print(f'Saving results in: {path}')
 
     def set_base_data_dict(self):
-        keys = ['dataset_name', 'model_name', 'frac', 'model_name', 'base_model_code',
+        keys = ['dataset_name', 'model_name', 'base_model_code',
                 'constraint_code', 'train_test_fold', 'total_train_size', 'total_test_size', 'phase',
-                'time', 'exp_subset', 'exp_grid_ratio', 'run_linprog_step']
-        self.data_dict = {key: None for key in keys}
+                'time']
+        self.data_dict = {}
         prm_keys = self.prm.keys()
         for t_key in keys:
             if t_key in prm_keys:
@@ -417,7 +419,9 @@ class ExperimentRun(metaclass=Singleton):
         train_all_X_y_A = pd.concat([pd.DataFrame(x) for x in [X_train_all, y_train_all, S_train_all]], axis=1)
         self.data_dict.update(**{'random_seed': random_seed, 'base_model_code': base_model_code,
                                  'constraint_code': constraint_code,
-                                 'total_train_size': X_train_all.shape[0], 'total_test_size': X_test_all.shape[0]})
+                                 'total_train_size': X_train_all.shape[0], 'total_test_size': X_test_all.shape[0],
+                                 'exp_grid_ratio': exp_grid_ratio, 'run_linprog_step': run_linprog_step,
+                                 'exp_subset': exp_subset})
         run_lp_suffix = '_LP_off' if run_linprog_step is False else ''
         eval_dataset_dict = {'train': [X_train_all, y_train_all, S_train_all],
                              'test': [X_test_all, y_test_all, S_test_all]}
@@ -472,8 +476,8 @@ class ExperimentRun(metaclass=Singleton):
                 exp_sample = train_all_X_y_A.sample(frac=exp_f, random_state=random_seed + 20, replace=False)
             exp_sample = exp_sample.reset_index(drop=True)
             exp_sampled_params = dict(X=exp_sample.iloc[:, :-2],
-                              y=exp_sample.iloc[:, -2],
-                              sensitive_features=exp_sample.iloc[:, -1])
+                                      y=exp_sample.iloc[:, -2],
+                                      sensitive_features=exp_sample.iloc[:, -1])
             # Unconstrained on sample
             base_model = self.load_base_model_with_best_param(base_model_code=base_model_code, fraction=1,
                                                               random_state=random_seed)
@@ -529,7 +533,7 @@ class ExperimentRun(metaclass=Singleton):
                 self.data_dict['model_name'] = f'{prefix}hybrid_5{run_lp_suffix}'
                 print(f"Running {self.data_dict['model_name']}")
                 model5 = fe.models.hybrid_models.Hybrid5(constraint=deepcopy(constraint), expgrad_frac=turn_expgrad,
-                                                      eps=turn_eps, )
+                                                         eps=turn_eps, )
                 metrics_res, time_lp_dict, time_eval_dict = self.fit_evaluate_model(model5, all_params,
                                                                                     eval_dataset_dict)
                 time_lp_dict['phase'] = 'lin_prog'
@@ -694,7 +698,7 @@ class ExperimentRun(metaclass=Singleton):
         if base_model is not None:
             kwargs['base_model'] = base_model
         return fe.models.get_model(method_str=self.prm['model_name'], random_state=random_seed, datasets=self.datasets,
-                                **kwargs)
+                                   **kwargs)
 
     def run_unmitigated(self, train_data: list, test_data: list,
                         base_model_code, random_seed=0):
@@ -725,9 +729,9 @@ class ExperimentRun(metaclass=Singleton):
             self.data_dict['eps'] = turn_eps
             base_model = self.load_base_model_with_best_param(base_model_code=base_model_code, random_state=random_seed)
             expgrad_X_logistic = fe.models.wrappers.ExponentiatedGradientPmf(base_model,
-                                                                               constraint=deepcopy(constraint),
-                                                                               eps=turn_eps, nu=1e-6,
-                                                                               run_linprog_step=run_linprog_step,
+                                                                             constraint=deepcopy(constraint),
+                                                                             eps=turn_eps, nu=1e-6,
+                                                                             run_linprog_step=run_linprog_step,
                                                                              random_state=random_seed)
             print("Fitting Exponentiated Gradient on full dataset...")
             train_data = dict(X=X_train_all, y=y_train_all, sensitive_features=A_train_all)
@@ -870,7 +874,6 @@ class ExperimentRun(metaclass=Singleton):
                 # delete file at path
                 if os.path.exists(path):
                     os.remove(path)
-
 
             if redo_tuning or not os.path.exists(path):
                 print(f'Starting finetuning of {base_model_code}')
