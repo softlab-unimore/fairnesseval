@@ -308,7 +308,7 @@ class ExperimentRun(metaclass=Singleton):
                 self.data_dict['random_seed'] = random_seed
                 params_to_iterate = {'train_fractions': self.prm['train_fractions'], }
 
-                if self.prm['model_params']['base_model_code'] is not None:
+                if self.prm['model_params'].get('base_model_code', None) is not None:
                     params_grid = self.prm['model_params'].pop('base_model_grid_params', None)
                     self.tuning_step(base_model_code=self.prm['model_params']['base_model_code'], X=X, y=y,
                                      fractions=self.prm['train_fractions'],
