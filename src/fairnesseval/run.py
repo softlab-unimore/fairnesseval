@@ -97,7 +97,7 @@ def launch_experiment_by_config(exp_dict: dict):
         params = []
     results_dir = exp_dict.get('results_path', None)
     if results_dir is None:
-        results_dir = utils_experiment_parameters.FAIR2_SAVE_PATH
+        results_dir = utils_experiment_parameters.DEFAULT_SAVE_PATH
     results_dir = os.path.join(results_dir, experiment_id)
     os.makedirs(results_dir, exist_ok=True)
     try:
@@ -172,7 +172,7 @@ class ExperimentRun(metaclass=Singleton):
         if "." in host_name:
             host_name = host_name.split(".")[-1]
         self.host_name = host_name
-        self.base_result_dir = utils_experiment_parameters.FAIR2_SAVE_PATH
+        self.base_result_dir = utils_experiment_parameters.DEFAULT_SAVE_PATH
         self.time_str = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 
     def get_arguments(self):
@@ -181,7 +181,7 @@ class ExperimentRun(metaclass=Singleton):
         arg_parser.add_argument("--experiment_id", default=None, help='experiment_id of the experiment to run.')
         arg_parser.add_argument('--dataset_name', nargs='+', required=True, help='list of dataset names.')
         arg_parser.add_argument('--model_name', nargs='+', required=True, help='list of model names.')
-        arg_parser.add_argument('--results_path', default=None,
+        arg_parser.add_argument('--results_path', default=utils_experiment_parameters.DEFAULT_SAVE_PATH,
                                 help='path to save results. default at results/hostname')
         arg_parser.add_argument("--train_fractions", nargs='+', type=float, default=[1],
                                 help='list of fractions to be used for training')

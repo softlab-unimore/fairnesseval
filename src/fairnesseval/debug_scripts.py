@@ -15,7 +15,9 @@ if __name__ == '__main__':
     # x = exp_run.load_best_params(base_model_code='lr', fraction=1.)
     # dataset_names = ACS_SELECTED_DATASETS
 
-    directory = os.path.join(utils_experiment_parameters.FAIR2_SAVE_PATH,'ACSEmployment', 'tuned_models')
+    directory = os.path.join(
+        '/home/fairlearn/content/drive/Shareddrives/SoftLab/Projects/Fairness/scalable-fairlearn/results/fairlearn-2',
+        'ACSEmployment', 'tuned_models')
     fraction = float(1)
     base_model_code = 'lr'
     random_seed = 0

@@ -101,7 +101,7 @@ if __name__ == '__main__':
               'pos_to_neg_target_flip_prob': [0.1, 0.15],
               'eps': [-.2, -.1, 0, .1, .2], # np.arange(5)/10 - 0.2
               'random_seed': 42,
-              'output_path': fairnesseval.utils_experiment_parameters.FAIR2_SAVE_PATH + '/datasets/synth_1e9_dataset.csv',
+              'output_path': '/home/fairlearn/content/drive/Shareddrives/SoftLab/Projects/Fairness/scalable-fairlearn/results/fairlearn-2/datasets/synth_1e9_dataset.csv',
               }
     sys.argv = to_arg([], kwargs, original_argv)
 
