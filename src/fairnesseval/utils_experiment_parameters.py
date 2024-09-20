@@ -62,6 +62,7 @@ expgrad_sample_params_medium_v1 = json.dumps(
 expgrad_params_restricted_v3 = json.dumps({'eta0': [0.5, 1.0, 2.0], 'run_linprog_step': [False], 'max_iter': [20, 50],
                                            'eps': BASE_EPS_V1, 'constraint_code': ['dp', 'eo'],
                                            })
+FAIR2_SAVE_PATH = '/home/fairlearn/content/drive/Shareddrives/SoftLab/Projects/Fairness/scalable-fairlearn/results/fairlearn-2'
 
 experiment_configurations = [
     {'experiment_id': 's_h_1.0.TEST',
@@ -1347,6 +1348,7 @@ experiment_configurations = [
      },
 
 ]
+
 
 config_values_dict = {
     'vary': ['eps', 'exp_frac', 'fairlearn_eta0'],
