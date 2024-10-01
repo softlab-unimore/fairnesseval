@@ -14,14 +14,14 @@ We compare various approaches and simulate deployment scenarios to showcase Fair
 
 
 ## fairnesseval DEMO
-[Here](https://github.com/softlab-unimore/fairnesseval/blob/main/notebooks/DEMO%20fairnesseval.ipynb)
+[Here](https://github.com/softlab-unimore/fairnesseval/blob/main/notebooks/DEMO_fairnesseval.ipynb)
 you can find a demo notebook with working examples.
 
 You can interact with the notebook and run the library with your experiments.
 
 ## fairnesseval API Quick Start
 
-[Here](https://github.com/softlab-unimore/fairnesseval/blob/main/notebooks/fairnesseval%20Quick%20Start.ipynb)
+[Here](https://github.com/softlab-unimore/fairnesseval/blob/main/notebooks/fairnesseval_Quick_Start.ipynb)
 you can find a quick start guide to the fairnesseval API with working examples.
 
 
