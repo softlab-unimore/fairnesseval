@@ -34,7 +34,7 @@ experiment_definitions = [
                          'base_model_grid_params': dict(
                              solver=[  # 'newton-cg', 'liblinear',
                                  'lbfgs'],
-                             penalty=['l1', 'l2'
+                             penalty=['l2'
                                       ],
                              C=[0.01,  1, 1000],
                              # [10, 1.0, 0.1, 0.05, 0.01],

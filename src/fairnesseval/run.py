@@ -120,6 +120,8 @@ def launch_experiment_by_config(exp_dict: dict):
 
     a = datetime.now()
     logging.info(f'Started logging.')
+    if base_model_code_list is None:
+        base_model_code_list = [None]
     to_iter = itertools.product(base_model_code_list, dataset_name_list, model_name_list)
     original_argv = sys.argv.copy()
     for base_model_code, dataset_name, model_name in to_iter:  # todo treat also constraint_code as list
@@ -390,8 +392,7 @@ class ExperimentRun(metaclass=Singleton):
             ''
         ]:
             suffix = f"_{self.data_dict['base_model_code']}" if self.data_dict['base_model_code'] is not None else ''
-            path = os.path.join(directory,
-                                f"{prefix}{name}_{self.prm['dataset_name']}{suffix}.csv")
+            path = os.path.join(directory, f"{prefix}{name}_{self.prm['dataset_name']}{suffix}.csv")
             if os.path.isfile(path):
                 old_df = pd.read_csv(path)
                 df = pd.concat([old_df, df])

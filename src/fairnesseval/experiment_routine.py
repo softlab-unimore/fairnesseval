@@ -130,6 +130,9 @@ if __name__ == "__main__":
 
     conf_todo = [
         'demo.1.test',
+        'demo.0.test',
+        "demo.2.test",
+        "demo.x.test",
         # next on fairlearn-2
         # next on fairlearn-3
         # 'acsER_binB2.1r',
