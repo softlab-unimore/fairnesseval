@@ -1,6 +1,6 @@
 aif360>=0.5.0
 fairlearn @ git+https://github.com/MiroDudik/fairlearn.git@f11f99acd2ba724f9ef885973830d8f3390b0717#egg=fairlearn
-folktables>=0.0.12
+folktables @ git+https://github.com/zykls/folktables.git@ebace19d8065efc43589f0067bf183398eb156b9
 matplotlib>=3.7.1
 numpy>=1.22.4,<2
 pandas>=1.4.2
