@@ -16,13 +16,13 @@ from warnings import simplefilter
 import joblib
 import numpy as np
 import pandas as pd
-import re
 import send2trash
 from sklearn.model_selection import train_test_split
 from tqdm import tqdm
+
 import fairnesseval as fe
-from fairnesseval import utils_experiment_parameters, utils_prepare_data, utils_general, metrics
 import fairnesseval.experiment_definitions
+from fairnesseval import utils_experiment_parameters, utils_prepare_data, utils_general, metrics
 from fairnesseval.metrics import metrics_code_map
 from fairnesseval.utils_experiment_parameters import experiment_configurations
 from fairnesseval.utils_general import Singleton
@@ -124,7 +124,7 @@ def launch_experiment_by_config(exp_dict: dict):
         base_model_code_list = [None]
     to_iter = itertools.product(base_model_code_list, dataset_name_list, model_name_list)
     original_argv = sys.argv.copy()
-    for base_model_code, dataset_name, model_name in to_iter:  # todo treat also constraint_code as list
+    for base_model_code, dataset_name, model_name in to_iter:
         gc.collect()
         turn_a = datetime.now()
         logging.info(f'Starting combination:'
@@ -159,7 +159,6 @@ def launch_experiment_by_config(exp_dict: dict):
     logging.shutdown()
 
 
-
 def launch_experiment_by_id(experiment_id: str, config_file_path=None):
     exp_dict = get_config_by_id(experiment_id, config_file_path)
     return launch_experiment_by_config(exp_dict)
@@ -179,6 +178,8 @@ class ExperimentRun(metaclass=Singleton):
         self.host_name = host_name
         self.base_result_dir = utils_experiment_parameters.DEFAULT_SAVE_PATH
         self.time_str = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        self.id_cols = ['dataset_name', 'model_name', 'base_model_code', 'constraint_code',
+                        'random_seed', 'train_test_seed', 'train_test_fold']
 
     def get_arguments(self):
         simplefilter(action='ignore', category=FutureWarning)
@@ -190,6 +191,8 @@ class ExperimentRun(metaclass=Singleton):
                                 help='path to save results. default at results/hostname')
         arg_parser.add_argument("--save_models", action="store_true", default=False,
                                 help='Save the fitted models if set.')
+        arg_parser.add_argument("--save_predictions", action="store_true", default=False,
+                                help='Save the predictions if set.')
         arg_parser.add_argument("--train_fractions", nargs='+', type=float, default=[1],
                                 help='list of fractions to be used for training')
         arg_parser.add_argument("--random_seeds", help='list of random seeds to use. (aka random_state) '
@@ -331,7 +334,11 @@ class ExperimentRun(metaclass=Singleton):
 
                 params_to_iterate = params_to_iterate | self.prm['model_params']
                 params_keys = params_to_iterate.keys()
-                for values in itertools.product(*params_to_iterate.values()): # iterate over all combinations of parameters
+                # add params_keys to id cols if not already there, maintaining the order
+                self.id_cols += [x for x in params_keys if x not in self.id_cols]
+
+                for values in itertools.product(
+                        *params_to_iterate.values()):  # iterate over all combinations of parameters
                     all_params = dict(zip(params_keys, values))
                     self.data_dict.update(**all_params)
 
@@ -365,10 +372,10 @@ class ExperimentRun(metaclass=Singleton):
                                 constraint_code=self.data_dict['constraint_code'],
                                 eps=self.data_dict.get('eps')) | model_params
             turn_results = self.run_hybrids(*datasets_divided, **model_params)
-        elif 'unmitigated' == self.prm['model_name']:
-            turn_results = self.run_unmitigated(*datasets_divided,
-                                                random_seed=random_seed,
-                                                base_model_code=self.data_dict['base_model_code'])
+        # elif 'unmitigated' == self.prm['model_name']: # No longer supported
+        #     turn_results = self.run_unmitigated(*datasets_divided,
+        #                                         random_seed=random_seed,
+        #                                         base_model_code=self.data_dict['base_model_code'])
         # elif 'fairlearn' == self.prm['model_name']:
         #     turn_results = self.run_fairlearn_full(*datasets_divided, eps=self.prm['eps'],
         #                                            run_linprog_step=self.prm['run_linprog_step'],
@@ -381,19 +388,7 @@ class ExperimentRun(metaclass=Singleton):
         results_list += turn_results
         results_df = pd.DataFrame(results_list)
         self.save_result(df=results_df)
-
-        # Save the model if the save_models parameter is set
-        if self.prm.get('save_models', False) and self.model is not None:
-            model_name = self.prm['model_name']
-            dataset_name = self.prm['dataset_name']
-            base_model_code = self.data_dict.get('base_model_code', 'None')
-            train_test_fold = self.data_dict['train_test_fold']
-            model_filename = (f'{model_name}_{dataset_name}'+
-                              (f'_{base_model_code}' if base_model_code else '') +
-                              f'_{random_seed}_{train_test_fold}.pkl')
-            model_filepath = os.path.join(self.base_result_dir, self.prm['experiment_id'], 'models', model_filename)
-            os.makedirs(os.path.dirname(model_filepath), exist_ok=True)
-            joblib.dump(self.model, model_filepath)
+        self.save_artifacts()
 
     def save_result(self, df, name=None, additional_dir=None):
         assert self.dataset_str is not None
@@ -416,6 +411,38 @@ class ExperimentRun(metaclass=Singleton):
                 df = pd.concat([old_df, df])
             df.to_csv(path, index=False)
             print(f'Saving results in: {path}')
+
+    def save_artifacts(self):
+        directory = os.path.join(self.base_result_dir, self.prm['experiment_id'])
+        if self.prm.get('save_models', False) or self.prm.get('save_predictions', False):
+            # determine current id values using keys in id_cols and values of data dict
+            artifacts_dir = os.path.join(directory, 'artifacts')
+            id_values = {key: self.data_dict[key] for key in self.id_cols if self.data_dict.get(key) is not None}
+            id_values['experiment_id'] = self.prm['experiment_id']
+            id_df_filepath = os.path.join(artifacts_dir, 'id_values.csv')
+            if os.path.exists(id_df_filepath):
+                id_df = pd.read_csv(id_df_filepath)
+                new_iteration = id_df['iteration'].max() + 1
+            else:
+                new_iteration = 0
+                id_df = pd.DataFrame()
+            id_values['iteration'] = new_iteration
+            id_df = pd.concat([id_df, pd.DataFrame([id_values])], ignore_index=True)
+            os.makedirs(os.path.dirname(id_df_filepath), exist_ok=True)
+            id_df.to_csv(id_df_filepath, index=False)
+            artifacts_dir = os.path.join(artifacts_dir, str(new_iteration))
+            os.makedirs(artifacts_dir, exist_ok=True)
+
+        if self.prm.get('save_models', False) and self.model is not None:
+            model_filepath = os.path.join(artifacts_dir, 'model.pkl')
+            joblib.dump(self.model, model_filepath)
+
+        if self.prm.get('save_predictions', False):
+            data_values = utils_prepare_data.DataValuesSingleton()
+            predictions_dict = data_values.get_all_predictions_with_indexes()
+            for phase, df in predictions_dict.items():
+                predictions_filepath = os.path.join(artifacts_dir, f'{phase}_pred.csv')
+                df.to_csv(predictions_filepath, index=False)
 
     def set_base_data_dict(self):
         keys = ['dataset_name', 'model_name', 'base_model_code',
@@ -701,7 +728,8 @@ class ExperimentRun(metaclass=Singleton):
         self.turn_results = []
         self.data_dict.update({'model_name': self.prm['model_name']})
         self.data_dict.update(**kwargs)
-        metrics_res, time_train_dict, time_eval_dict = self.fit_evaluate_model(self.model, train_data, eval_dataset_dict)
+        metrics_res, time_train_dict, time_eval_dict = self.fit_evaluate_model(self.model, train_data,
+                                                                               eval_dataset_dict)
         time_train_dict['phase'] = 'train'
         if hasattr(self.model, 'get_stats_dict'):
             self.data_dict.update(**self.model.get_stats_dict())
@@ -781,10 +809,8 @@ class ExperimentRun(metaclass=Singleton):
         metrics_res = {}
         time_list = []
         time_dict = {}
-        for phase, dataset_list in dataset_dict.items():
-            data_values = utils_prepare_data.DataValuesSingleton()
-            data_values.set_phase(phase)
 
+        for phase, dataset_list in dataset_dict.items():
             X, Y, S = dataset_list[:3]
 
             params = inspect.signature(predict_method).parameters.keys()
@@ -800,6 +826,10 @@ class ExperimentRun(metaclass=Singleton):
             a = datetime.now()
             y_pred = t_predict_method(*data)
             b = datetime.now()
+
+            data_values = utils_prepare_data.DataValuesSingleton()
+            # Set phase to return the original sensitive attributes with the current index & save the correct predictions
+            data_values.set_phase_and_predictions(y_pred, phase=phase)
             time_dict.update(metric=f'{phase}_prediction', time=(b - a).total_seconds())
             time_list.append(deepcopy(time_dict))
             for name, eval_method in metrics_dict.items():
