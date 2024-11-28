@@ -281,6 +281,15 @@ def find_privileged_unprivileged(X, y, sensitive_features):
     return privileged_groups, unprivileged_groups
 
 
+def load_generic_dataset(dataset_str, dataset_params):
+    file_path = dataset_params['file_path']
+    df = pd.read_csv(file_path)
+    # second to last column is the label, last column is the sensitive attribute
+    X, y, A = split_X_y_A(df)
+    return X, y, A
+
+
+
 def get_dataset(dataset_str, prm=None):
     dataset_params = prm['dataset_params'] # can be passed to the dataset loader
     if dataset_str == "adult":
@@ -292,7 +301,8 @@ def get_dataset(dataset_str, prm=None):
     elif dataset_str in fe.utils_experiment_parameters.sigmod_datasets_no_SA:
         return load_convert_dataset_aif360(dataset_str, remove_sensitive_attribute=True)
     else:
-        raise_dataset_name_error(dataset_str)
+        # raise_dataset_name_error(dataset_str)
+        return load_generic_dataset(dataset_str, dataset_params)
 
 
 def white_alone(datasets):
@@ -380,29 +390,44 @@ def get_constraint(constraint_code, eps):
 
 class DataValuesSingleton(metaclass=Singleton):
     original_sensitive_attr = None
-    train_index = None
-    test_index = None
+    index_dict = {}
+    prediction_dict = {}
     phase = None
 
     def set_phase(self, phase):
-        # if phase not in ['train', 'test']:
-        #    raise Exception(f'phase {phase} not allowed.')
+        if phase not in self.index_dict:
+            raise Exception(f'phase {phase} not allowed.')
         self.phase = phase
 
+    def set_phase_index(self, index, phase):
+        self.index_dict[phase] = index
+
     def set_train_test_index(self, train_index, test_index):
-        self.train_index = train_index
-        self.test_index = test_index
+        self.set_phase_index(train_index, 'train')
+        self.set_phase_index(test_index, 'test')
 
     def get_current_original_sensitive_attr(self):
-        if self.phase == 'train':
-            return self.original_sensitive_attr[self.train_index]
-        elif self.phase == 'test':
-            return self.original_sensitive_attr[self.test_index]
+        if self.phase in self.index_dict:
+            return self.original_sensitive_attr[self.index_dict[self.phase]]
         else:
             raise Exception(f'phase {self.phase} not allowed.')
 
     def set_original_sensitive_attr(self, original_sensitive_attr):
         self.original_sensitive_attr = deepcopy(original_sensitive_attr)
+
+    def set_phase_and_predictions(self, prediction, phase: str):
+        self.set_phase(phase)
+        self.prediction_dict[self.phase] = prediction
+
+    def get_predictions_with_indexes(self, phase):
+        if phase not in self.index_dict or phase not in self.prediction_dict:
+            raise Exception(f'phase {phase} not allowed or predictions not set.')
+        indexes = self.index_dict[phase]
+        predictions = self.prediction_dict[phase]
+        return pd.DataFrame({'index': indexes, 'predictions': predictions})
+
+    def get_all_predictions_with_indexes(self):
+        return {phase: self.get_predictions_with_indexes(phase) for phase in self.prediction_dict.keys()}
 
 
 # metrics_code_map = {

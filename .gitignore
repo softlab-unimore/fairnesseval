@@ -148,3 +148,6 @@ dmypy.json
 /streamlit/results/
 /streamlit/cached_data/
 /streamlit/demo_results/
+/cached_data/
+/demo_results/
+/src/fairnesseval/demo_results/
