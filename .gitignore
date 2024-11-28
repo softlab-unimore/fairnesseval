@@ -142,6 +142,9 @@ dmypy.json
 /datasets/
 /old_to_delete/
 /run_experiments/
-/streamlit/
 /src/fairnesseval/non_synched_files/
 /src/fairnesseval/datasets/
+/src/fairnesseval/cached_data/
+/streamlit/results/
+/streamlit/cached_data/
+/streamlit/demo_results/
