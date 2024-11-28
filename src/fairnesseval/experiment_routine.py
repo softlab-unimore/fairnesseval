@@ -127,7 +127,15 @@ done_conf = [
 ]
 
 if __name__ == "__main__":
-
+    # run.launch_experiment_by_config({"experiment_id": "q12",
+	# "dataset_names": [
+	# "ACSIncome",
+	# "ACSPublicCoverage"],
+	# "model_names": ["LogisticRegression"],
+	# "random_seed": 1,
+	# "train_fractions": [0.016, 0.063, 0.251, 1],
+	# "results_path": "demo_results",
+	# "params": ["--debug"]})
     conf_todo = [
         'demo.1.test',
         'demo.0.test',
