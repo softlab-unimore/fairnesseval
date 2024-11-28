@@ -131,7 +131,7 @@ dmypy.json
 /.idea/
 /results/
 
-/cached_data/
+/cached_data.old/
 /sample_data/
 /folktables/
 /datasets/datasets/ACSPublicCoverage/groups.csv

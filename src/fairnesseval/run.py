@@ -156,6 +156,9 @@ def launch_experiment_by_config(exp_dict: dict):
     logging.info(f'Ended experiment. It took: {b - a}')
     sys.argv = original_argv
 
+    logging.shutdown()
+
+
 
 def launch_experiment_by_id(experiment_id: str, config_file_path=None):
     exp_dict = get_config_by_id(experiment_id, config_file_path)
@@ -185,6 +188,8 @@ class ExperimentRun(metaclass=Singleton):
         arg_parser.add_argument('--model_name', nargs='+', required=True, help='list of model names.')
         arg_parser.add_argument('--results_path', default=utils_experiment_parameters.DEFAULT_SAVE_PATH,
                                 help='path to save results. default at results/hostname')
+        arg_parser.add_argument("--save_models", action="store_true", default=False,
+                                help='Save the fitted models if set.')
         arg_parser.add_argument("--train_fractions", nargs='+', type=float, default=[1],
                                 help='list of fractions to be used for training')
         arg_parser.add_argument("--random_seeds", help='list of random seeds to use. (aka random_state) '
@@ -326,7 +331,7 @@ class ExperimentRun(metaclass=Singleton):
 
                 params_to_iterate = params_to_iterate | self.prm['model_params']
                 params_keys = params_to_iterate.keys()
-                for values in itertools.product(*params_to_iterate.values()):
+                for values in itertools.product(*params_to_iterate.values()): # iterate over all combinations of parameters
                     all_params = dict(zip(params_keys, values))
                     self.data_dict.update(**all_params)
 
@@ -376,6 +381,19 @@ class ExperimentRun(metaclass=Singleton):
         results_list += turn_results
         results_df = pd.DataFrame(results_list)
         self.save_result(df=results_df)
+
+        # Save the model if the save_models parameter is set
+        if self.prm.get('save_models', False) and self.model is not None:
+            model_name = self.prm['model_name']
+            dataset_name = self.prm['dataset_name']
+            base_model_code = self.data_dict.get('base_model_code', 'None')
+            train_test_fold = self.data_dict['train_test_fold']
+            model_filename = (f'{model_name}_{dataset_name}'+
+                              (f'_{base_model_code}' if base_model_code else '') +
+                              f'_{random_seed}_{train_test_fold}.pkl')
+            model_filepath = os.path.join(self.base_result_dir, self.prm['experiment_id'], 'models', model_filename)
+            os.makedirs(os.path.dirname(model_filepath), exist_ok=True)
+            joblib.dump(self.model, model_filepath)
 
     def save_result(self, df, name=None, additional_dir=None):
         assert self.dataset_str is not None
@@ -679,14 +697,14 @@ class ExperimentRun(metaclass=Singleton):
         self.test_data = test_data
         eval_dataset_dict.update(**{'train': train_data,
                                     'test': test_data})
-        model = self.init_fairness_model(**kwargs)
+        self.model = self.init_fairness_model(**kwargs)
         self.turn_results = []
         self.data_dict.update({'model_name': self.prm['model_name']})
         self.data_dict.update(**kwargs)
-        metrics_res, time_train_dict, time_eval_dict = self.fit_evaluate_model(model, train_data, eval_dataset_dict)
+        metrics_res, time_train_dict, time_eval_dict = self.fit_evaluate_model(self.model, train_data, eval_dataset_dict)
         time_train_dict['phase'] = 'train'
-        if hasattr(model, 'get_stats_dict'):
-            self.data_dict.update(**model.get_stats_dict())
+        if hasattr(self.model, 'get_stats_dict'):
+            self.data_dict.update(**self.model.get_stats_dict())
         self.add_turn_results(metrics_res, [time_train_dict, time_eval_dict])
         return self.turn_results
 

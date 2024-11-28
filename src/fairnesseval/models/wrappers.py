@@ -1,7 +1,7 @@
 import copy
 import inspect
 from random import seed
-
+import pickle
 import numpy as np
 import pandas as pd
 import sklearn
@@ -385,13 +385,22 @@ additional_models_dict = {
 }
 
 
+class PersonalizedWrapper:
+    def __init__(self, method_str, random_state=42, **kwargs):
+        self.method_str = method_str
+        self.model = additional_models_dict.get(method_str)(random_state=random_state, **kwargs)
+
+    def __getstate__(self):
+        state = self.__dict__.copy()
+        state['model'] = pickle.dumps(self.model)
+        return state
+
+    def __setstate__(self, state):
+        self.__dict__.update(state)
+        self.model = pickle.loads(state['model'])
+
 def create_wrapper(method_str, random_state=42, datasets=None, **kwargs):
     model_class = additional_models_dict.get(method_str)
-
-    class PersonalizedWrapper:
-        def __init__(self, method_str, random_state=42, **kwargs):
-            self.method_str = method_str
-            self.model = model_class(random_state=random_state, **kwargs)
 
     params = inspect.signature(model_class.fit).parameters.keys()
     if 'sensitive_features' in params:
