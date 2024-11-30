@@ -23,8 +23,6 @@ bigger_selected_datasets = ['adult', 'ACSPublicCoverage', 'ACSEmployment']
 
 sigmod_datasets = ['adult_sigmod', 'compas', 'german', ]
 
-sigmod_datasets_no_SA = [x + '_no_SA' for x in sigmod_datasets]
-
 sigmod_dataset_map = dict(zip(['compas', 'german', 'adult_sigmod'], ['CompasDataset', 'GermanDataset', 'AdultDataset']))
 
 sigmod_datasets_aif360 = [x + '_aif360' for x in sigmod_datasets]
@@ -62,7 +60,7 @@ expgrad_sample_params_medium_v1 = json.dumps(
 expgrad_params_restricted_v3 = json.dumps({'eta0': [0.5, 1.0, 2.0], 'run_linprog_step': [False], 'max_iter': [20, 50],
                                            'eps': BASE_EPS_V1, 'constraint_code': ['dp', 'eo'],
                                            })
-DEFAULT_SAVE_PATH = './results/'
+FAIR2_SAVE_PATH = '/home/fairlearn/content/drive/Shareddrives/SoftLab/Projects/Fairness/scalable-fairlearn/results/fairlearn-2'
 
 experiment_configurations = [
     {'experiment_id': 's_h_1.0.TEST',
@@ -1348,12 +1346,6 @@ experiment_configurations = [
      },
 
 ]
-# add results_path in each experiment
-default_params = {
-    'results_path': '/home/fairlearn/content/drive/Shareddrives/SoftLab/Projects/Fairness/scalable-fairlearn/results/fairlearn-2/',
-}
-
-experiment_configurations = [default_params | exp for exp in experiment_configurations]
 
 config_values_dict = {
     'vary': ['eps', 'exp_frac', 'fairlearn_eta0'],
@@ -1362,7 +1354,6 @@ config_values_dict = {
     'model_names': ['hybrids'],
     'dataset_name': ['compas', 'german', 'adult_sigmod', 'ACSPublicCoverage', 'ACSEmployment'],
 }
-
 configurations_matrix = []
 for combination in itertools.product(*config_values_dict.values()):
     configurations_matrix.append(dict(zip(config_values_dict.keys(), combination)))

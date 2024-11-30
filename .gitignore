@@ -151,3 +151,4 @@ dmypy.json
 /cached_data/
 /demo_results/
 /src/fairnesseval/demo_results/
+/src/test.py

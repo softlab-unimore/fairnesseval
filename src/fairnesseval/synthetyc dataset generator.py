@@ -8,7 +8,6 @@ import pandas as pd
 from fairnesseval.run import to_arg
 import fairnesseval
 
-
 class DatasetGenerator:
     def __init__(self, arguments):
         self.args = arguments
@@ -45,14 +44,13 @@ class DatasetGenerator:
         rnd_value = rnd.rand(self.args.n_samples, self.args.n_features)
         # copy eps n_outcomes times in eps array
         eps = np.tile(self.args.eps, (self.args.n_samples, 1))
-        equal_mask = rnd_value < (
-                0.5 + eps)  # derived from Y_i with a probability of 1/2 + eps_i, and its complement(1 −Y_i ) with the remaining probability
+        equal_mask = rnd_value < (0.5 + eps) # derived from Y_i with a probability of 1/2 + eps_i, and its complement(1 −Y_i ) with the remaining probability
         complement_mask = ~equal_mask
         features[complement_mask] = 1 - features[complement_mask]
 
         # Create DataFrame
-        data = np.column_stack((features, flipped_outcomes, sensitive_attributes))
-        columns = [f'Feature_{i + 1}' for i in range(self.args.n_features)] + ['Outcome'] + ['Sensitive Attribute']
+        data = np.column_stack((sensitive_attributes, flipped_outcomes, features))
+        columns = ['Sensitive Attribute'] + ['Outcome'] + [f'Feature_{i + 1}' for i in range(self.args.n_features)]
         df = pd.DataFrame(data, columns=columns)
 
         return df
@@ -94,16 +92,16 @@ def main():
 
 if __name__ == '__main__':
     original_argv = sys.argv.copy()
-    kwargs = {'n_samples': int(1e7),
+    kwargs = {'n_samples': int(1e8),
               'n_features': 5,
               'group_values': [0, 1],
               'group_probabilities': [0.55, 0.45],
               'group_target_probabilities': [0.5, 0.3],
               'neg_to_pos_target_flip_prob': [0.15, 0.1],
               'pos_to_neg_target_flip_prob': [0.1, 0.15],
-              'eps': [-.2, -.1, 0, .1, .2],  # np.arange(5)/10 - 0.2
+              'eps': [-.2, -.1, 0, .1, .2], # np.arange(5)/10 - 0.2
               'random_seed': 42,
-              'output_path': '/home/fairlearn/content/drive/Shareddrives/SoftLab/Projects/Fairness/scalable-fairlearn/results/fairlearn-2/datasets/synth_1e9_dataset.csv',
+              'output_path': fairnesseval.utils_experiment_parameters.FAIR2_SAVE_PATH + '/datasets/synth_1e9_dataset.csv',
               }
     sys.argv = to_arg([], kwargs, original_argv)
 

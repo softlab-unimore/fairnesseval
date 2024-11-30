@@ -22,19 +22,15 @@ def get_metric_function(metric_f):
 
 
 def convert_metric_to_use_original_sensitive(metric_f):
-    params = inspect.signature(metric_f).parameters.keys()
-    if 'predict_method' in params:
-        def f(X, Y, S, predict_method):
-            data_values = utils_prepare_data.DataValuesSingleton()
-            s_orig = data_values.get_current_original_sensitive_attr()
+    def f(X, Y, S, predict_method):
+        data_values = utils_prepare_data.DataValuesSingleton()
+        s_orig = data_values.get_current_original_sensitive_attr()
+        params = inspect.signature(metric_f).parameters.keys()
+        if 'predict_method' in params:
             return metric_f(X, Y, s_orig, predict_method=predict_method)
-    elif 'y_pred' in params:
-        def f(X, Y, S, y_pred):
-            data_values = utils_prepare_data.DataValuesSingleton()
-            s_orig = data_values.get_current_original_sensitive_attr()
-            return metric_f(X, Y, s_orig, y_pred=y_pred)
-    else:
-        raise ValueError('metric function must have either predict_method or y_pred as parameter')
+        elif 'y_pred' in params:
+            return metric_f(X, Y, s_orig, y_pred=predict_method(X))
+
     return f
 
 

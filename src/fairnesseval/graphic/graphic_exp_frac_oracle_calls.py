@@ -132,9 +132,7 @@ if __name__ == '__main__':
     extract_expgrad_oracle_time(all_df, new_col_name='time_oracles', cols_to_select='all')
     all_df['avg_time_oracles'] = all_df['time_oracles'] / all_df['n_oracle_calls_']
 
-    y_axis_list_short = ['time', 'testjoin_error', 'train_violation', 'test_violation']
-    y_axis_l3 = ['time', 'train_error', 'train_violation']
-    y_axis_l4 = ['time', 'test_error', 'test_violation']
+    y_axis_list_short = ['time', 'test_error', 'test_violation']
     y_axis_list_long = y_axis_list_short + ['train_error', 'train_violation', 'avg_time_oracles', 'n_oracle_calls_',
                                             'time_oracles', 'ratio_fit_total']
     all_df = all_df.join(all_df[all_df['phase'] == 'expgrad_fracs']['oracle_execution_times_'].agg(
@@ -156,8 +154,7 @@ if __name__ == '__main__':
                  'test_EqualizedOdds': (-0.01, 0.2)}
     # filter
 
-    for y_axis_list, suffix in [(y_axis_list_long, ''), (y_axis_list_short, '_v2'), (y_axis_l3, '_v3'),
-                                (y_axis_l4, '_v4')]:
+    for y_axis_list, suffix in [(y_axis_list_long, ''), (y_axis_list_short, '_v2'), ]:
         y_lim_list = [y_lim_map.get(x, None) for x in y_axis_list]
         plot_all_df_subplots(all_df, model_list=exp_frac_models,
                              chart_name='exp_frac' + suffix, grouping_col='exp_frac',
