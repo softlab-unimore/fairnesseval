@@ -282,7 +282,12 @@ def find_privileged_unprivileged(X, y, sensitive_features):
 
 
 def load_generic_dataset(dataset_str, dataset_params):
-    file_path = dataset_params['file_path']
+    if dataset_params is None or 'file_path' not in dataset_params:
+        current_path = os.path.dirname(__file__)
+        file_path = os.path.join(current_path,'..','..','datasets', dataset_str)
+        file_path = os.path.normpath(file_path)
+    else:
+        file_path = dataset_params['file_path']
     df = pd.read_csv(file_path)
     # second to last column is the label, last column is the sensitive attribute
     X, y, A = split_X_y_A(df)
