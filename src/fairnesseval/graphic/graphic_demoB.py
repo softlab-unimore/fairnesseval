@@ -3,13 +3,12 @@ import os
 import numpy as np
 
 from fairnesseval import utils_results_data
-from fairnesseval.graphic.graphic_utility import plot_demo_subplots
+from fairnesseval.graphic.graphic_utility import plot_demo_subplots, PlotUtility, plot_all_df_subplots
 
 
 def plot_function_B(chart_name, experiment_code_list, model_list, x_axis, y_axis_list, grouping_col=None,
-                    res_path='./demo_results', save=True, show=False, single_plot=True, dataset_list=None):
+                    res_path='./demo_results', save=True, show=False, single_plot=True, dataset_list=None, **kwargs):
     dataset_results_path = os.path.join(res_path)
-    base_plot_dir = os.path.join(res_path, 'plots')
     results_df = utils_results_data.load_results_experiment_id(experiment_code_list, dataset_results_path)
     if dataset_list is not None:
         results_df = results_df[results_df['dataset_name'].isin(dataset_list)]
@@ -21,32 +20,39 @@ def plot_function_B(chart_name, experiment_code_list, model_list, x_axis, y_axis
     return plot_demo_subplots(all_df, model_list=model_list, chart_name=chart_name, save=save, show=show,
                               axis_to_plot=[[x_axis, y_axis] for y_axis in y_axis_list],
                               sharex=True, result_path_name=dataset_results_path,
-                              single_plot=single_plot, grouping_col=grouping_col,
-                              params=dict(figsize=np.array([16, 9]) * .60))
+                              use_subplots=single_plot, grouping_col=grouping_col, **kwargs)
 
 
 if __name__ == '__main__':
+    dataset_results_path = os.path.join(os.path.dirname(__file__), '..', '..', '..', 'streamlit', 'demo_results')
+    dataset_results_path = os.path.abspath(dataset_results_path)
+    plot_function_B(**{"chart_name": "demo.B", "experiment_code_list": ["demo.D.0r", "demo.D.1r"],
+                       "model_list": ["fairlearn", "LogisticRegression"], "x_axis": "train_fractions",
+                       "y_axis_list": ["time", "test_error", "test_DemographicParity"],
+                       "grouping_col": "train_fractions", "res_path": dataset_results_path, "show": False,
+                       }, params={"figsize": [3.15, 2.0999999999999996]}
+                    )
+
     params = {'chart_name': 'demo.A', 'experiment_code_list': ('demo.default.test',),
               'model_list': ('LogisticRegression',), 'x_axis': 'train_error', 'y_axis_list': ['train_EqualizedOdds'],
               'grouping_col': None, 'dataset_list': ['adult']}
 
-    plot_function_B(**params, res_path='./demo_results', single_plot=False, show=True, save=False)
+    # plot_function_B(**params, res_path=dataset_results_path, single_plot=False, show=True, save=False)
 
-    save = False
+    save = True
     show = True
 
     experiment_code_list = [
         'demo.D.0r',
+        'demo.D.1r',
         # 'demo.C.1r',
     ]
 
-    dataset_results_path = os.path.join("results")
-    base_plot_dir = os.path.join('results', 'plots')
     results_df = utils_results_data.load_results_experiment_id(experiment_code_list, dataset_results_path)
-    results_df['model_code'] = results_df['model_code'].replace('hybrid_7', 'EXPGRAD')
+    # results_df['model_code'] = results_df['model_code'].replace('hybrid_7', 'EXPGRAD++')
     results_df['model_code'] = results_df['model_code'].replace('fairlearn', 'EXPGRAD')
     model_list = [
-        # 'unconstrained',
+        'LogisticRegression',
         'EXPGRAD',
         # 'ThresholdOptimizer', 'Calmon', 'Feld', 'ZafarDI', 'ZafarEO',
     ]
@@ -56,7 +62,8 @@ if __name__ == '__main__':
         ascending=[True, False, False, True]).drop(columns=['model_sort'])
 
     x_axis = 'train_fractions'
+    pl_util = PlotUtility(save=save, show=show, suffix='', base_plot_dir=dataset_results_path)
     plot_demo_subplots(all_df, model_list=model_list, chart_name='D', save=save, show=show,
-                       axis_to_plot=[[x_axis, y_axis] for y_axis in ['test_error', 'test_DemographicParity', 'time']],
-                       sharex=False, result_path_name='demo',
-                       single_plot=True, grouping_col=x_axis)
+                       axis_to_plot=[[x_axis, y_axis] for y_axis in ['time', 'test_error', 'test_DemographicParity', ]],
+                       sharex=True, result_path_name='plot', grouping_col=x_axis, pl_util=pl_util,
+                       params=dict(figsize=np.array([4.5, 3]) * 0.7))

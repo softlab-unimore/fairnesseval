@@ -25,7 +25,7 @@ sns.set()  # for plot styling
 # sns.set_style('whitegrid')
 sns.set_style("ticks")
 
-plt.rcParams.update({'font.size': 16, "figure.dpi": 200, 'savefig.dpi': 300,
+plt.rcParams.update({'font.size': 16, "figure.dpi": 400, 'savefig.dpi': 400,
                      # 'figure.figsize': (16 * 2 / 3, 9 * 2 / 3)
                      })
 plt.rcParams['figure.constrained_layout.use'] = True
@@ -122,7 +122,7 @@ class PlotUtility():
     # sns.color_palette("hls", len(self.to_plot_models))
     # color_list = list(mcolors.TABLEAU_COLORS.keys())
     def __init__(self, save: bool = True, show: bool = True, suffix: str = '',
-                 base_plot_dir=os.path.join('results', 'plots'), annotate_mode='all',
+                 base_plot_dir=None, annotate_mode='all',
                  custom_add_graphic_object=None):
         '''
 
@@ -134,7 +134,8 @@ class PlotUtility():
         self.show = show
         self.suffix = suffix
         self.save_flag = save
-        self.base_plot_dir = base_plot_dir
+        self.base_plot_dir = base_plot_dir if base_plot_dir is not None else os.path.join(os.path.dirname(__file__),
+                                                                                          'results', 'plots')
         self.annotate_mode = annotate_mode
         self.params = dict(no_errorbar=False)
         if custom_add_graphic_object == 'bar':
@@ -353,13 +354,13 @@ class PlotUtility():
 
     @staticmethod
     def save_figure_static(base_dir, additional_dir_path, name, fig, suffix='', svg=False):
-        host_name, current_time_str = get_info()
         dir_path = PlotUtility.get_base_path_static(base_dir, additional_dir_path, suffix=suffix)
         for t_dir in [dir_path]:
             for t_name in [
                 # f'{current_time_str}_{name}',
                 f'{name}']:
                 t_full_path = os.path.join(t_dir, t_name)
+                print(f'Saving {t_full_path}')
                 os.makedirs(t_dir, exist_ok=True)
                 fig.savefig(t_full_path + '.pdf', bbox_inches="tight")
                 if svg:
@@ -438,10 +439,6 @@ def bar_plot_function_by_model(df, ax, fig: plt.figure, name_col='model_code', y
     df[yerr.columns].plot.bar(yerr=yerr, rot=0, fontsize=10, ax=ax)
     # ax.set_xlabel('')
     # ax.set_ylabel(ylabel)
-
-
-
-
 
 
 def phase_time_vs_frac(df, ax, fig, y_log=True):
@@ -542,7 +539,7 @@ def rename_columns_to_plot(df, x_axis, y_axis):
 
 def plot_all_df_subplots(all_df, model_list, chart_name, save, show=True, grouping_col=None, axis_to_plot=None,
                          sharex=True,
-                         sharey='row', result_path_name='all_df', single_chart=False, xlog=False,
+                         sharey='row', result_path_name='all_df', xlog=False,
                          increasing_marker_size=False,
                          subplots_by_col='dataset_name', subplots=True,
                          ylim_list=None, add_threshold=False, annotate_mode='all', annotate_col=None,
@@ -600,7 +597,7 @@ def plot_all_df_subplots(all_df, model_list, chart_name, save, show=True, groupi
                         ]
         assert grouping_col is not None, 'grouping_col must be defined if axis_to_plot is not defined.'
 
-    for keys, df_to_plot in mean_error_df.groupby(['base_model_code', 'constraint_code'], sort=False):
+    for keys, df_to_plot in mean_error_df.groupby(['base_model_code', 'constraint_code'], sort=False, dropna=False):
         base_model_code, constraint_code = keys
         # replace 'violation' with turn constraint name
         turn_axis_list = [[x.replace('violation', constraint_code_to_name[constraint_code]) for x in pair] for pair in
@@ -826,7 +823,7 @@ def plot_demo_subplots(all_df, model_list, chart_name, save, show=False, groupin
                        sharex=True,
                        sharey='row', result_path_name='all_df', xlog=False,
                        increasing_marker_size=False,
-                       horizontal_subplots_by_col='dataset_name', single_plot=True,
+                       horizontal_subplots_by_col='dataset_name', use_subplots=True,
                        ylim_list=None, annotate_mode='all', annotate_col=None,
                        custom_add_graphic_object=None, pl_util=None, params={}):
     if annotate_col is not None:
@@ -835,25 +832,21 @@ def plot_demo_subplots(all_df, model_list, chart_name, save, show=False, groupin
     # filtered_df = utils_results_data.prepare_data(all_df)
     model_list = list(model_list)
 
-    df_to_plot = prepare_for_plot(all_df[all_df['model_code'].isin(model_list)], grouping_col)
+    mean_error_df = prepare_for_plot(all_df[all_df['model_code'].isin(model_list)], grouping_col)
     # mean_error_df = mean_error_df[mean_error_df['model_code']]
     if pl_util is None:
         pl_util = PlotUtility(save=save, show=show, suffix='', annotate_mode=annotate_mode,
                               custom_add_graphic_object=custom_add_graphic_object)
-    if single_plot:
+    base_figsize = np.array([4, 3]) * 0.8
+    if params.get('figsize', None) is not None:
+        base_figsize = params['figsize']
+
+    if use_subplots:
         pl_util.show = False
-        if params.get('figsize', None) is not None:
-            figsize = params['figsize']
-        else:
-            figsize = np.array(
-                [14.4 / 5 * df_to_plot[horizontal_subplots_by_col].nunique(), 2.4 * len(list(axis_to_plot))])
-        # fig = plt.figure()
-        #
-        # fig = plt.gcf()
-        # fig.clear()
-        # axes_array = fig.add_subplot(
-        fig, axes_array= plt.subplots(
-            nrows=len(axis_to_plot), ncols=df_to_plot[horizontal_subplots_by_col].nunique(),
+        figsize = np.array([base_figsize[0] * mean_error_df[horizontal_subplots_by_col].nunique(),
+                            base_figsize[1] * len(list(axis_to_plot))])
+        fig, axes_array = plt.subplots(
+            nrows=len(axis_to_plot), ncols=mean_error_df[horizontal_subplots_by_col].nunique(),
             sharex=sharex,
             sharey=sharey, figsize=figsize,
             tight_layout=True)  # todo fix sharey not showing multiple axis labels
@@ -861,18 +854,18 @@ def plot_demo_subplots(all_df, model_list, chart_name, save, show=False, groupin
         pl_util.fig = fig
     for row, (x_axis, y_axis) in enumerate(axis_to_plot):
         pl_util.row = row
-        check_axis_validity(df_to_plot, x_axis, y_axis)
-        df_to_plot = rename_columns_to_plot(df_to_plot, x_axis, y_axis)
+        check_axis_validity(mean_error_df, x_axis, y_axis)
+        mean_error_df = rename_columns_to_plot(mean_error_df, x_axis, y_axis)
 
         col_to_use = ['x', 'xerr', 'y', 'yerr', 'model_code'] + ([grouping_col] if grouping_col is not None else [])
 
         if annotate_col is not None:
             col_to_use += [annotate_col]
-        df_subplot = df_to_plot.groupby([horizontal_subplots_by_col], sort=False, )[col_to_use]
+        df_subplot = mean_error_df.groupby(horizontal_subplots_by_col, sort=False, )[col_to_use]
 
         for col, (subplot_value, turn_df) in enumerate(df_subplot):
             pl_util.col = col
-            if single_plot:
+            if use_subplots:
                 pl_util.ax = axes_array[row, col]
 
                 pl_util.add_multiple_lines(turn_df, grouping_col, model_list, increasing_marker_size, annotate_col)
@@ -885,15 +878,18 @@ def plot_demo_subplots(all_df, model_list, chart_name, save, show=False, groupin
                     pl_util.ax.yaxis.set_tick_params(which='both', labelleft=True)
 
             else:
-                pl_util._start_plot()
-                pl_util.add_multiple_lines(df_to_plot, grouping_col, model_list, increasing_marker_size=True,
+                plt.close('all')
+                pl_util.fig = plt.figure(figsize=base_figsize)
+                pl_util.ax = plt.subplot()
+                pl_util.add_multiple_lines(mean_error_df, grouping_col, model_list, increasing_marker_size=True,
                                            annotate_col=annotate_col)
                 pl_util._end_plot(x_axis, y_axis,
                                   title=f'{subplot_value}{name_suffix}')
-                name = f'{chart_name}_{name_suffix}_{x_axis}_vs_{y_axis}'
+                name = '_'.join(
+                    [x for x in [chart_name, name_suffix, f'{x_axis}_vs_{y_axis}'] if x != '' and x is not None])
                 pl_util.save_figure(additional_dir_path=result_path_name, name=name)
 
-    if single_plot:
+    if use_subplots:
         if sharey == 'row':
             if ylim_list is not None:
                 for r, lim in enumerate(ylim_list):
@@ -912,7 +908,7 @@ def plot_demo_subplots(all_df, model_list, chart_name, save, show=False, groupin
         else:
             fig.legend(handles, labels, ncol=min(7, len(labels)),
                        loc='upper center',
-                       bbox_to_anchor=(0.5, 0.0),
+                       bbox_to_anchor=(0.5, -0.02),
                        bbox_transform=fig.transFigure,
                        # borderaxespad=-2,
                        fontsize=10,
@@ -924,6 +920,8 @@ def plot_demo_subplots(all_df, model_list, chart_name, save, show=False, groupin
             ax.set_ylabel('')
             # ax.label_outer()
         xlabels = []
+        for ax in axes_array[:, :].flat:
+            xlabels.append(ax.get_xlabel())
 
         if sharex:
             for ax in axes_array[:, :].flat:
@@ -933,10 +931,11 @@ def plot_demo_subplots(all_df, model_list, chart_name, save, show=False, groupin
             #     ax.xaxis.set_ticklabels([])
             fig.tight_layout()
             if np.unique(xlabels).size == 1:
-                fig.supxlabel(xlabels[0].replace('\n', ' '), y=0, va='baseline', fontsize='medium')
+                fig.supxlabel(xlabels[0].replace('\n', ' '), y=0, va='baseline', fontsize='small')
 
         # pl_util.fig.suptitle(StyleUtility.replace_words(f'{base_model_code} - {constraint_code}'))
         # fig.subplots_adjust(bottom=0.1)
+        fig.subplots_adjust(wspace=0.1, hspace=0.1)
 
         if show:
             fig.show()
@@ -948,14 +947,12 @@ def plot_demo_subplots(all_df, model_list, chart_name, save, show=False, groupin
 
     dir_path = pl_util.get_base_path(additional_dir_path=result_path_name)
 
-    df_to_plot = df_to_plot.drop(columns=['x', 'xerr', 'y', 'yerr'])
+    mean_error_df = mean_error_df.drop(columns=['x', 'xerr', 'y', 'yerr'])
 
-    first_columns = intersection_sorted(['model_code', 'dataset_name', 'train_fractions'], df_to_plot.columns)
-    df_to_plot = df_to_plot[first_columns + difference_sorted(df_to_plot.columns, first_columns)]
+    first_columns = intersection_sorted(['model_code', 'dataset_name', 'train_fractions'], mean_error_df.columns)
+    mean_error_df = mean_error_df[first_columns + difference_sorted(mean_error_df.columns, first_columns)]
     os.makedirs(os.path.join(dir_path), exist_ok=True)
-    df_to_plot.to_csv(os.path.join(dir_path, f'{chart_name}_VARY_{grouping_col}_metrics_mean_error.csv'))
+    mean_error_df.to_csv(os.path.join(dir_path, f'{chart_name}_VARY_{grouping_col}_metrics_mean_error.csv'))
     # if single_chart:
     #     plot_all_df_single_chart(pl_util, grouping_col, mean_error_df, model_set_name)
     return pl_util.fig
-
-
