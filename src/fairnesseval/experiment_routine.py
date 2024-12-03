@@ -128,28 +128,40 @@ done_conf = [
 
 if __name__ == "__main__":
     # run.launch_experiment_by_config({"experiment_id": "q12",
-	# "dataset_names": [
-	# "ACSIncome",
-	# "ACSPublicCoverage"],
-	# "model_names": ["LogisticRegression"],
-	# "random_seed": 1,
-	# "train_fractions": [0.016, 0.063, 0.251, 1],
-	# "results_path": "demo_results",
-	# "params": ["--debug"]})
+    # "dataset_names": [
+    # "ACSIncome",
+    # "ACSPublicCoverage"],
+    # "model_names": ["LogisticRegression"],
+    # "random_seed": 1,
+    # "train_fractions": [0.016, 0.063, 0.251, 1],
+    # "results_path": "demo_results",
+    # "params": ["--debug"]})
+
+    # run.launch_experiment_by_config({"experiment_id": "lr0",
+    #                                  "dataset_names": ["synth_1e5_dataset.csv"],
+    #                                  "model_names": ["LogisticRegression"],
+    #                                  "results_path": "../../streamlit/demo_results",
+    #                                  "params": ["--debug"]})
     conf_todo = [
-        'demo.1.test',
-        'demo.0.test',
-        "demo.2.test",
-        "demo.x.test",
-        # next on fairlearn-2
-        # next on fairlearn-3
-        # 'acsER_binB2.1r',
+        # 'demo.0',
+        # 'demo.0.1',
+        # 'demo.1',
+        'demo.D.1r',
+        # 'demo.D.0r', # done
+        # 'demo.A.2r',  # done
+        # 'demo.A.1r', # done
+        # 'demo.2',
+        # 'demo.2t',
+        # 'demo.2r',
+        # 'demo.2.1r',
+        # 'demo.C.0r',
+        # 'demo.D.0r',
+        # 'demo.C.1r',
+        # "demo.2.test",
+        # 'demo.1.test',
+        # 'demo.0.test',
         # "demo.x.test",
 
-        # 'demo.C.1r',
-        # testing
-        # 'acs_h_gs1_1.test',
-        # 'f_eta0_1.0.test',
 
     ]
 
