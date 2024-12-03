@@ -104,7 +104,7 @@ def get_model(method_str, random_state=42, **kwargs):
         try:
             model = wrappers.create_wrapper(**param_dict, **kwargs)
         except Exception as e:
-            raise e
+            print(e)
             raise ValueError(
                 f'the method specified ({method_str}) is not allowed. Valid options are {methods_name_dict.values()}')
     return model

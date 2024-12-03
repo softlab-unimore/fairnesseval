@@ -325,6 +325,11 @@ class Kearns(GeneralAifModel):
 
 class ThresholdOptimizerWrapper(ThresholdOptimizer):
     def __init__(self, *args, random_state=0, datasets=None, **kwargs):
+        constraint_code_to_name = {'dp': 'demographic_parity',
+                                   'eo': 'equalized_odds'}
+        if 'constraint_code' in kwargs:
+            cc = kwargs.pop('constraint_code')
+            kwargs['constraints'] = constraint_code_to_name.get(cc, cc)
         super().__init__(*args, **kwargs)
         self.random_state = random_state
 
