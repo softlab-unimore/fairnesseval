@@ -1,4 +1,5 @@
 import argparse
+import json
 import os
 import sys
 
@@ -53,7 +54,8 @@ class DatasetGenerator:
         # Create DataFrame
         data = np.column_stack((features, flipped_outcomes, sensitive_attributes))
         columns = [f'Feature_{i + 1}' for i in range(self.args.n_features)] + ['Outcome'] + ['Sensitive Attribute']
-        df = pd.DataFrame(data, columns=columns)
+        # dtypes int
+        df = pd.DataFrame(data, columns=columns, dtype=int)
 
         return df
 
@@ -90,11 +92,15 @@ def main():
     dataset = generator.generate_dataset()
     os.makedirs(os.path.dirname(args.output_path), exist_ok=True)
     dataset.to_csv(args.output_path, index=False)
+    # save configurations in a json file
+    config_path = os.path.join(os.path.dirname(args.output_path),
+                               f'{os.path.basename(args.output_path).split(".")[0]}_config.json')
+    json.dump(vars(args), open(config_path, 'w'), indent=4)
 
 
 if __name__ == '__main__':
     original_argv = sys.argv.copy()
-    kwargs = {'n_samples': int(1e7),
+    kwargs = {'n_samples': int(1e5),
               'n_features': 5,
               'group_values': [0, 1],
               'group_probabilities': [0.55, 0.45],
@@ -103,7 +109,7 @@ if __name__ == '__main__':
               'pos_to_neg_target_flip_prob': [0.1, 0.15],
               'eps': [-.2, -.1, 0, .1, .2],  # np.arange(5)/10 - 0.2
               'random_seed': 42,
-              'output_path': '/home/fairlearn/content/drive/Shareddrives/SoftLab/Projects/Fairness/scalable-fairlearn/results/fairlearn-2/datasets/synth_1e9_dataset.csv',
+              'output_path': '../../datasets/synth_1e5_dataset.csv',
               }
     sys.argv = to_arg([], kwargs, original_argv)
 
