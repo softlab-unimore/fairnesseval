@@ -100,11 +100,13 @@ def launch_experiment_by_config(exp_dict: dict):
         results_dir = utils_experiment_parameters.DEFAULT_SAVE_PATH
     results_dir = os.path.join(results_dir, experiment_id)
     os.makedirs(results_dir, exist_ok=True)
-    try:
-        for filepath in os.scandir(results_dir):
+
+    for filepath in os.scandir(results_dir):
+        try:
             send2trash.send2trash(filepath)
-    except:
-        pass
+        except Exception as e:
+            print(f'Error deleting files in {results_dir}: {e}')
+            pass
     # logger = logging.getLogger(__name__)
     logging.basicConfig(level=logging.INFO,
                         format='%(asctime)s %(levelname)s:%(name)s: %(message)s', datefmt='%d/%m/%y %H:%M:%S',
@@ -198,7 +200,7 @@ class ExperimentRun(metaclass=Singleton):
         arg_parser.add_argument("--random_seeds", help='list of random seeds to use. (aka random_state) '
                                                        'All random seeds set are related to this random seed.'
                                                        'For each random_seed a new train_test split is done.',
-                                default=0,
+                                default=[0],
                                 nargs='+', type=int)
 
         available_metric_names = metrics_code_map.keys()
@@ -276,8 +278,10 @@ class ExperimentRun(metaclass=Singleton):
         model_specific_params = ['eps', 'constraint_code', 'expgrad_fractions', 'grid_fractions', 'exp_grid_ratio',
                                  'exp_subset', 'run_linprog_step', 'base_model_code']
         for key in model_specific_params:
-            if prm.get(key) is not None:
-                prm['model_params'][key] = prm[key]
+            if (value := prm.get(key)) is not None:
+                if not isinstance(value, (list, set, tuple)):
+                    value = [value]
+                prm['model_params'][key] = value
                 del prm[key]
 
         other_deprecated_args = ['train_test_seeds']
@@ -318,14 +322,15 @@ class ExperimentRun(metaclass=Singleton):
                 self.data_dict['random_seed'] = random_seed
                 params_to_iterate = {'train_fractions': self.prm['train_fractions'], }
 
-                if self.prm['model_params'].get('base_model_code', None) is not None:
-                    params_grid = self.prm['model_params'].pop('base_model_grid_params', None)
-                    self.tuning_step(base_model_code=self.prm['model_params']['base_model_code'], X=X, y=y,
-                                     fractions=self.prm['train_fractions'],
-                                     random_seed=0,
-                                     redo_tuning=self.prm['redo_tuning'],
-                                     params_grid=params_grid
-                                     )  # TODO: random_seed=0 to simplify, may be corrected later.
+                if (base_model_code_l := self.prm['model_params'].get('base_model_code', None)) is not None:
+                    for base_model_code in base_model_code_l:
+                        params_grid = self.prm['model_params'].pop('base_model_grid_params', None)
+                        self.tuning_step(base_model_code=base_model_code, X=X, y=y,
+                                         fractions=self.prm['train_fractions'],
+                                         random_seed=0,
+                                         redo_tuning=self.prm['redo_tuning'],
+                                         params_grid=params_grid
+                                         )  # TODO: random_seed=0 to simplify, may be corrected later.
 
                 # check that all values of model_params hasy type list or set or tuple, if not convert to list
                 for key, value in self.prm['model_params'].items():
@@ -358,29 +363,20 @@ class ExperimentRun(metaclass=Singleton):
         if 'hybrids' == self.prm['model_name']:
             print(
                 f"\nRunning Hybrids with random_seed {random_seed} and fractions {self.prm['train_fractions']}, "
-                f"and grid-fraction={self.data_dict['grid_fractions']}...\n")
+                f"and grid-fraction={self.data_dict.get('grid_fractions', None)}...\n")
             try:
                 model_params.pop('eps')
             except:
                 pass
-            model_params = dict(grid_fractions=self.data_dict['grid_fractions'],
+            model_params = dict(grid_fractions=self.data_dict.get('grid_fractions', None),
                                 exp_subset=self.data_dict.get('exp_subset', True),
-                                exp_grid_ratio=self.data_dict['exp_grid_ratio'],
-                                run_linprog_step=self.data_dict['run_linprog_step'],
+                                exp_grid_ratio=self.data_dict.get('exp_grid_ratio', None),
+                                run_linprog_step=self.data_dict.get('run_linprog_step', None),
                                 random_seed=random_seed,
-                                base_model_code=self.data_dict['base_model_code'],
-                                constraint_code=self.data_dict['constraint_code'],
+                                base_model_code=self.data_dict.get('base_model_code', None),
+                                constraint_code=self.data_dict.get('constraint_code', None),
                                 eps=self.data_dict.get('eps')) | model_params
             turn_results = self.run_hybrids(*datasets_divided, **model_params)
-        # elif 'unmitigated' == self.prm['model_name']: # No longer supported
-        #     turn_results = self.run_unmitigated(*datasets_divided,
-        #                                         random_seed=random_seed,
-        #                                         base_model_code=self.data_dict['base_model_code'])
-        # elif 'fairlearn' == self.prm['model_name']:
-        #     turn_results = self.run_fairlearn_full(*datasets_divided, eps=self.prm['eps'],
-        #                                            run_linprog_step=self.prm['run_linprog_step'],
-        #                                            random_seed=random_seed,
-        #                                            base_model_code=self.data_dict['base_model_code'], )
         else:
             model_params = dict(random_seed=random_seed, ) | model_params
             turn_results = self.run_general_fairness_model(*datasets_divided,
@@ -404,11 +400,13 @@ class ExperimentRun(metaclass=Singleton):
             # f'last_'
             ''
         ]:
-            suffix = f"_{self.data_dict['base_model_code']}" if self.data_dict['base_model_code'] is not None else ''
+            suffix = f"_{self.data_dict['base_model_code']}" if self.data_dict.get('base_model_code',
+                                                                                   None) is not None else ''
             path = os.path.join(directory, f"{prefix}{name}_{self.prm['dataset_name']}{suffix}.csv")
             if os.path.isfile(path):
                 old_df = pd.read_csv(path)
                 df = pd.concat([old_df, df])
+            path = os.path.abspath(path)
             df.to_csv(path, index=False)
             print(f'Saving results in: {path}')
 
@@ -451,7 +449,7 @@ class ExperimentRun(metaclass=Singleton):
         self.data_dict = {}
         prm_keys = self.prm.keys()
         for t_key in keys:
-            if t_key in prm_keys:
+            if t_key in prm_keys and self.prm[t_key] is not None:
                 self.data_dict[t_key] = self.prm[t_key]
 
     def run_hybrids(self, train_data: list, test_data: list, eps,
@@ -718,6 +716,9 @@ class ExperimentRun(metaclass=Singleton):
             sample_index = np.random.choice(range(train_data[0].shape[0]), int(train_data[0].shape[0] * frac),
                                             replace=False)
             train_data = [x.iloc[sample_index] for x in train_data]
+            data_values = utils_prepare_data.DataValuesSingleton()
+            data_values.set_phase_index(index=train_data[0].index, phase='train')
+            data_values.set_phase_index(index=full_train[0].index, phase='full_train')
             eval_dataset_dict.update(**{'full_train': full_train})
 
         self.train_data = train_data
@@ -737,8 +738,6 @@ class ExperimentRun(metaclass=Singleton):
         return self.turn_results
 
     def init_fairness_model(self, base_model_code=None, random_seed=None, fraction=1, **kwargs):
-        constraint_code_to_name = {'dp': 'demographic_parity',
-                                   'eo': 'equalized_odds'}
         base_model = self.load_base_model_with_best_param(base_model_code, random_state=random_seed,
                                                           fraction=fraction)  # TODO: fix random seed. Using 0 to simplify
         # kwargs['constraint_code'] = constraint_code_to_name[kwargs['constraint_code']]
@@ -869,7 +868,7 @@ class ExperimentRun(metaclass=Singleton):
             model.fit(*train_dataset)
             b = datetime.now()
 
-        logging.info(f'Ended fit:  in: {b - a} ||| Starting evaluation...')
+        logging.info(f'Ended fit in: {b - a} ||| Starting evaluation...')
         time_fit_dict = {'time': (b - a).total_seconds(), 'phase': 'train'}
 
         exp_run = ExperimentRun()
@@ -886,7 +885,7 @@ class ExperimentRun(metaclass=Singleton):
     def load_base_model_with_best_param(self, base_model_code=None, random_state=None, fraction=1):
         fraction = float(fraction)
         if base_model_code is None:
-            base_model_code = self.data_dict['base_model_code']
+            base_model_code = self.data_dict.get('base_model_code', None)
             if base_model_code is None:
                 # raise ValueError(f'base_model_code is None, this is not allowed')
                 return None
@@ -902,6 +901,8 @@ class ExperimentRun(metaclass=Singleton):
         if base_model_code is None:
             print(f'base_model_code is None. Not starting finetuning.')
             return
+        if params_grid is None:
+            params_grid = fe.models.get_model_parameter_grid(base_model_code=base_model_code)
         fractions = deepcopy(fractions)
         # if 1 not in fractions:  # always add fraction 1 because it is used in run_hybrids
         #     fractions += [1]
