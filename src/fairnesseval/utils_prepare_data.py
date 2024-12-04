@@ -14,7 +14,7 @@ import folktables
 from fairlearn.reductions import DemographicParity, EqualizedOdds, UtilityParity
 from folktables import ACSDataSource, generate_categories
 
-from fairnesseval.utils_general import Singleton
+from fairnesseval.utils_general import Singleton, get_project_root
 import fairnesseval as fe
 
 try:
@@ -283,9 +283,7 @@ def find_privileged_unprivileged(X, y, sensitive_features):
 
 def load_generic_dataset(dataset_str, dataset_params):
     if dataset_params is None or 'file_path' not in dataset_params:
-        current_path = os.path.dirname(__file__)
-        file_path = os.path.join(current_path,'..','..','datasets', dataset_str)
-        file_path = os.path.normpath(file_path)
+        file_path = os.path.join(get_project_root(), 'datasets', dataset_str)
     else:
         file_path = dataset_params['file_path']
     df = pd.read_csv(file_path)
@@ -294,15 +292,18 @@ def load_generic_dataset(dataset_str, dataset_params):
     return X, y, A
 
 
-
 def get_dataset(dataset_str, prm=None):
-    dataset_params = prm['dataset_params'] # can be passed to the dataset loader
+    if prm:
+        dataset_params = prm.get(['dataset_params'], None)  # can be passed to the dataset loader
+    else:
+        prm = {}
+        dataset_params = None
     if dataset_str == "adult":
         return load_transform_Adult()
     elif dataset_str in fe.utils_experiment_parameters.sigmod_datasets + fe.utils_experiment_parameters.sigmod_datasets_aif360:
         return load_convert_dataset_aif360(dataset_str)
     elif dataset_str in fe.utils_experiment_parameters.ACS_dataset_names:
-        return load_transform_ACS(dataset_str=dataset_str, states=prm['states'])
+        return load_transform_ACS(dataset_str=dataset_str, states=prm.get('states', None))
     elif dataset_str in fe.utils_experiment_parameters.sigmod_datasets_no_SA:
         return load_convert_dataset_aif360(dataset_str, remove_sensitive_attribute=True)
     else:
@@ -454,3 +455,36 @@ split_strategy_map = {
 
 def split_dataset_generator(dataset_str, datasets, train_test_seed, split_strategy, test_size, **kwargs):
     return split_strategy_map[split_strategy](datasets, train_test_seed, test_size, **kwargs)
+
+
+def eda_for_fair(X, y, A):
+    """
+    Perform exploratory data analysis (EDA) for fairness on the given dataset.
+
+    This function calculates various statistics for the target variable `y` grouped by the sensitive attribute `A`
+    and optionally by the 'SEX' column in `X` if it exists. The statistics include mean, standard deviation, group size,
+    and group percentage. Additionally, it calculates weighted mean and macro statistics (mean, std, median, min, max)
+    for each group.
+
+    Parameters:
+    X (pd.DataFrame): The feature dataframe.
+    y (pd.Series): The target variable.
+    A (pd.Series): The sensitive attribute.
+
+    Returns:
+    dict: A dictionary where keys are the names of the columns used for grouping and values are dataframes containing
+          the calculated statistics.
+    """
+    function_list = [('y_mean', 'mean'), ('y_std', 'std'), ('group_size', 'size'),
+                     ('group_perc', lambda x: x.size / y.shape[0])]
+    col_list = [A] + ([X['SEX']] if 'SEX' in X.columns else [])
+    ret_dict = {}
+    for col in col_list:
+        target_stats = y.groupby(col).agg(function_list).sort_values(by='y_mean', ascending=True)
+        additional_stats = target_stats.copy()
+        additional_stats.loc['weighted_mean'] = y.agg(dict(function_list))
+        additional_stats.loc['weighted_mean'] = y.agg(dict(function_list))
+        for func in ['mean', 'std', 'median', 'min', 'max']:
+            additional_stats.loc[f'macro_{func}'] = target_stats.agg(func)
+        ret_dict[col.name] = additional_stats
+    return ret_dict
