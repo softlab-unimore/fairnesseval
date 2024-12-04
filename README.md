@@ -45,3 +45,10 @@ you can find a quick start guide to the fairnesseval API with working examples.
 This table provides a clear and concise overview of the parameters and their descriptions.
 
 [//]: # (TODO define synthetic generations. explain how to use it. Automatically find and load it.)
+
+## Installation
+Clone the repository, navigate to the root directory, and run the following command:
+
+```bash
+ pip install -e .
+```

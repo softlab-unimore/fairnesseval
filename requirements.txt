@@ -18,3 +18,5 @@ fair-classification @ git+https://github.com/baraldian/fair-classification-pytho
 streamlit>=1.12.0
 altair>=4.1.0
 BlackBoxAuditing==0.1.54
+streamlit-vertical-slider==2.5.5
+streamlit-toggle==0.1.3
