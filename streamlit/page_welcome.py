@@ -1,8 +1,11 @@
 # main.py
 import streamlit as st
-from page_exp_def_and_exec import pagina1  #MODIFICARE
-from page_single_plot import pagina2 #MODIFICARE
-from page_multiple_plot import pagina3 #MODIFICARE
+from page_exp_def_and_exec import stpage01_exp_definition_and_execution
+from page_single_plot import stpage02_single_plot
+from page_multiple_plot import stpage03_multiplot
+from stpage_synthetic_datasets import stpage05_synthetic_generator
+from stpage_eda import stpage_eda
+from upload_dataset import st_dataset_upload
 
 
 # Title
@@ -14,7 +17,8 @@ st.title("Fairnesseval")
 st.sidebar.title("Menu")
 pagina_selezionata = st.sidebar.radio(
     "Go to:",
-    ["Welcome page", "Experiment definition and execution", "Presentation single dataset", "Presentation multiple plots"]
+    ["Welcome page", "Experiment definition and execution", "Presentation single dataset", "Presentation multiple plots",
+     "Synthetic dataset generator", "Upload dataset", "EDA"]
 )
 
 
@@ -39,8 +43,14 @@ We compare various approaches and simulate deployment scenarios to showcase Fair
 """, unsafe_allow_html=True)
 
 elif pagina_selezionata == "Experiment definition and execution":
-    pagina1()
+    stpage01_exp_definition_and_execution()
 elif pagina_selezionata == "Presentation single dataset":
-    pagina2()
+    stpage02_single_plot()
 elif pagina_selezionata == "Presentation multiple plots":
-    pagina3()
+    stpage03_multiplot()
+elif pagina_selezionata == "Synthetic dataset generator":
+    stpage05_synthetic_generator()
+elif pagina_selezionata == "Upload dataset":
+    st_dataset_upload()
+elif pagina_selezionata == "EDA":
+    stpage_eda()

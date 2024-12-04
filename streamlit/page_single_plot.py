@@ -47,7 +47,7 @@ def generate_graph(chart_name, experiment_code_list, model_list, x_axis, y_axis_
         st.error(f"Error during graphic generation: {str(e)}")
 
 # Definition for page 2 for menu
-def pagina2():
+def stpage02_single_plot():
     # title
     st.title("Presentation Single Dataset")
 

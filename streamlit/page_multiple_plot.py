@@ -1,4 +1,8 @@
 # prova5_1.py
+import json
+
+import numpy as np
+
 import streamlit as st
 import matplotlib.pyplot as plt
 from fairnesseval.graphic import utils_results_data
@@ -37,13 +41,16 @@ def generate_graph(chart_name, experiment_code_list, model_list, x_axis, y_axis_
 
     #Genereting graph
     try:
-        fig = plot_function_B(**params, res_path=res_dir, show=False)
+        print('Calling plot_function_B with params:',
+            json.dumps(dict(**params, res_path=res_dir, show=False, params=dict(figsize=(np.array([4.5, 3]) * 0.7).tolist()))))
+        fig = plot_function_B(**params, res_path=res_dir, show=False, params=dict(figsize=np.array([4.5, 3]) * 0.7))
+
         st.pyplot(fig)
     except Exception as e:
         st.error(f"Error during graphic generation: {str(e)}")
 
 # Function for menu
-def pagina3():
+def stpage03_multiplot():
     # Titolo
     st.title("Presentation Multiple Plots")
 
