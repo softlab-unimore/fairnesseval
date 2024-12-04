@@ -8,6 +8,7 @@ import pandas as pd
 
 from fairnesseval.run import to_arg
 import fairnesseval
+from fairnesseval.utils_general import get_project_root
 
 
 class DatasetGenerator:
@@ -60,7 +61,7 @@ class DatasetGenerator:
         return df
 
 
-def main():
+def get_parser():
     parser = argparse.ArgumentParser(description='Dataset Generator')
     parser.add_argument('--n_samples', type=int, default=int(1e6), help='Number of samples in the dataset.')
     parser.add_argument('--n_features', type=int, default=5, help='Number of features in the dataset.')
@@ -81,13 +82,24 @@ def main():
                              'to Negative. [expected to be a list with the same length of group_values]')
     parser.add_argument('--eps', type=float, nargs='+', default=np.arange(5) / 10,
                         help='''Epsilon for feature randomization. Each feature, denoted as 𝑋𝑖 𝑗 ,
-                         is derived from 𝑌𝑖 with a probability of 1/2 + eps𝑗 , and its complement(1 −𝑌𝑖 )
-                          with the remaining probability. [expected to be a list of length n_features]''')
+                             is derived from 𝑌𝑖 with a probability of 1/2 + eps𝑗 , and its complement(1 −𝑌𝑖 )
+                              with the remaining probability. [expected to be a list of length n_features]''')
     parser.add_argument('--random_seed', type=int, default=42, help='Random seed.')
     parser.add_argument('--output_path', type=str, default='./datasets/default_dataset.csv',
                         help='Output path for the generated dataset.')
-    # random seed
-    args = parser.parse_args()
+    return parser
+
+
+def generate_and_save_synthetic_dataset(args_list=None):
+    parser = get_parser()
+    if args_list is not None:
+        args = parser.parse_args(args_list)
+    else:
+        args = parser.parse_args()
+    print(json.dumps(vars(args), indent=4))
+
+
+
     generator = DatasetGenerator(args)
     dataset = generator.generate_dataset()
     os.makedirs(os.path.dirname(args.output_path), exist_ok=True)
@@ -96,6 +108,9 @@ def main():
     config_path = os.path.join(os.path.dirname(args.output_path),
                                f'{os.path.basename(args.output_path).split(".")[0]}_config.json')
     json.dump(vars(args), open(config_path, 'w'), indent=4)
+    print(f'Dataset saved in {args.output_path}')
+    print(f'Configurations saved in {config_path}')
+
 
 
 if __name__ == '__main__':
@@ -109,8 +124,8 @@ if __name__ == '__main__':
               'pos_to_neg_target_flip_prob': [0.1, 0.15],
               'eps': [-.2, -.1, 0, .1, .2],  # np.arange(5)/10 - 0.2
               'random_seed': 42,
-              'output_path': '../../datasets/synth_1e5_dataset.csv',
+              'output_path': os.path.join(get_project_root(), 'datasets', 'synth_1e5_dataset.csv')
               }
-    sys.argv = to_arg([], kwargs, original_argv)
+    generate_and_save_synthetic_dataset(to_arg([], kwargs))
 
-    main()
+    sys.argv = original_argv

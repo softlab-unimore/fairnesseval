@@ -1,4 +1,5 @@
 import argparse
+import os
 import warnings
 
 
@@ -34,3 +35,8 @@ class Singleton(type):
         if cls not in cls._instances:
             cls._instances[cls] = super(Singleton, cls).__call__(*args, **kwargs)
         return cls._instances[cls]
+
+
+def get_project_root() -> str:
+    tpath = os.path.join(os.path.dirname(__file__), '..', '..')
+    return os.path.abspath(tpath)
