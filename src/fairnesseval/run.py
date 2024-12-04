@@ -32,8 +32,13 @@ def add_minus(x):
     return x if x.startswith('--') else '--' + x
 
 
-def to_arg(list_p, dict_p, original_argv):
-    res_string = [original_argv[0]] + [add_minus(x) for x in list_p]
+def to_arg(list_p, dict_p, original_argv=None):
+    if original_argv:
+        res_string = [original_argv[0]]
+    else:
+        res_string = []
+
+    res_string += [add_minus(x) for x in list_p]
     for key, value in dict_p.items():
         if isinstance(value, list) or isinstance(value, range):
             value = [str(x) for x in value]
@@ -47,6 +52,16 @@ def to_arg(list_p, dict_p, original_argv):
         # res_string += [f'{key}={value}']
     return res_string
 
+def adjust_dict_params(params: dict):
+    for key, value in params.items():
+        if isinstance(value, list) or isinstance(value, range):
+            value = [x for x in value]
+        elif isinstance(value, dict):
+            value = [json.dumps(value)]
+        else:
+            value = [value]
+        params[key] = value
+    return params
 
 def get_config_by_id(experiment_id, config_file_path=None):
     """
@@ -283,7 +298,7 @@ class ExperimentRun(metaclass=Singleton):
                     value = [value]
                 prm['model_params'][key] = value
                 del prm[key]
-
+        prm['model_params'] = adjust_dict_params(prm['model_params'])
         other_deprecated_args = ['train_test_seeds']
 
         prm['model_name'] = prm['model_name'][0]
