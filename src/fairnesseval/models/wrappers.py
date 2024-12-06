@@ -7,14 +7,14 @@ import pandas as pd
 import sklearn
 from sklearn.preprocessing import StandardScaler
 
-from aif360.algorithms.inprocessing import GerryFairClassifier
+from aif360.algorithms.inprocessing import GerryFairClassifier, AdversarialDebiasing
 from aif360.algorithms.postprocessing import EqOddsPostprocessing
 from aif360.algorithms.preprocessing import DisparateImpactRemover
 from aif360.algorithms.preprocessing.optim_preproc_helpers.distortion_functions \
     import get_distortion_adult, get_distortion_german, get_distortion_compas
 from aif360.algorithms.preprocessing.optim_preproc import OptimPreproc
 from aif360.algorithms.preprocessing.optim_preproc_helpers.opt_tools import OptTools
-from aif360.datasets import StandardDataset
+from aif360.datasets import StandardDataset, BinaryLabelDataset
 
 from fairlearn.postprocessing import ThresholdOptimizer
 
@@ -25,6 +25,9 @@ from fairnesseval import utils_prepare_data
 from fairnesseval import utils_experiment_parameters as ut_exp
 from fairlearn.reductions import ExponentiatedGradient
 from functools import partial
+import tensorflow as tf
+
+from fairnesseval.utils_general import LoggerSingleton
 
 
 class GeneralAifModel():
@@ -62,8 +65,6 @@ class GeneralAifModel():
     def fit(self, X, y, sensitive_features):
         pass
 
-    # predict(self, X, sensitive_features):
-
     def predict(self, X):
         pass
 
@@ -72,6 +73,11 @@ def replace_values_aif360_dataset(X, y, sensitive_features, aif360_dataset):
     aif360_dataset = aif360_dataset.copy()
     y = y if y is not None else np.zeros_like(sensitive_features)
     aif360_dataset.features = pd.concat([X, sensitive_features], axis=1)
+    if isinstance(sensitive_features, pd.Series):
+        sf_name = sensitive_features.name
+    else:
+        sf_name = sensitive_features.columns
+    aif360_dataset.features_names = X.columns + sf_name
     sensitive_features = np.array(sensitive_features).reshape(-1, 1)
     y = np.array(y).reshape(-1, 1)
     # if aif360_dataset.__class__.__name__ == 'GermanDataset':
@@ -86,43 +92,71 @@ class CalmonWrapper(GeneralAifModel):
     def __init__(self, method_str, base_model, datasets, eps=None, constraint_code=None, random_state=None):
         super().__init__(datasets)
         X, y, A = datasets[:3]
-        self.op = OptimPreproc(OptTools, self.get_option(self.aif_dataset),
-                               # unprivileged_groups=datasets[3]['unprivileged_groups'],
-                               # privileged_groups=datasets[3]['privileged_groups'],
+        u = np.unique(A)
+        self.pam = [dict(zip(u, u))]
+        u = np.unique(y)
+        self.lm = [dict(zip(u, u))]
+
+        self.label_name = y.name
+
+        self.op = OptimPreproc(OptTools, optim_options=self.get_option(self.aif_dataset),
+                               privileged_groups=[{self.aif_dataset.protected_attribute_names[0]:
+                                                       self.aif_dataset.privileged_protected_attributes[0]}],
+                               unprivileged_groups=[{self.aif_dataset.protected_attribute_names[0]:
+                                                         self.aif_dataset.unprivileged_protected_attributes[0]}],
                                seed=random_state)
         self.base_model = base_model
         self.method_str = method_str
 
     def fit(self, X, y, sensitive_features):
-        aif_dataset = replace_values_aif360_dataset(X, y, sensitive_features, self.aif_dataset)
+        # X, self.selected_columns = utils_prepare_data.convert_floats_to_categorical(X, y, self.base_model)
+        aif_dataset = BinaryLabelDataset(df=pd.concat([X, sensitive_features, y], axis=1), label_names=[y.name],
+                                         protected_attribute_names=[sensitive_features.name])
+        aif_dataset.features = np.array(aif_dataset.features)
+        aif_dataset.metadata['protected_attribute_maps'] = self.pam
+        aif_dataset.metadata['label_maps'] = self.lm
+
         self.op = self.op.fit(aif_dataset)
         dataset_transf_train = self.op.transform(aif_dataset, transform_Y=True)
         dataset_transf_train = aif_dataset.align_datasets(dataset_transf_train)
-        train = dataset_transf_train.features
-        self.base_model.fit(train, dataset_transf_train.labels, )
+        train = dataset_transf_train.features[:, :-1]
+        self.base_model.fit(train, dataset_transf_train.labels.ravel())
 
     def predict(self, X, sensitive_features):
-        aif_dataset = replace_values_aif360_dataset(X, None, sensitive_features, self.aif_dataset)
-        # (self.aif360_dataset.convert_to_dataframe()[0].iloc[:,:-1].values == aif_dataset.convert_to_dataframe()[0].iloc[:,:-1].values).all()
+        # X, _ = utils_prepare_data.convert_floats_to_categorical(X, None, self.base_model,
+        #                                                         selected_columns=self.selected_columns)
+        df = pd.concat([X, sensitive_features], axis=1)
+        df[self.label_name] = 0
+
+        aif_dataset = BinaryLabelDataset(df=df, label_names=[self.label_name],
+                                         protected_attribute_names=[sensitive_features.name])
+        aif_dataset.features = np.array(aif_dataset.features)
+        aif_dataset.metadata['protected_attribute_maps'] = self.pam
+        aif_dataset.metadata['label_maps'] = self.lm
+
         df_transformed = self.op.transform(aif_dataset, transform_Y=True)
         df_transformed = aif_dataset.align_datasets(df_transformed)
-        X = df_transformed.features
+        X = df_transformed.features[:, :-1]
         return self.base_model.predict(X)
 
     def get_option(self, aif_dataset):
+
+        def get_distortion(vold, vnew):
+            total_cost = 0.0
+            for k in vold:
+                if k in vnew:
+                    try:
+                        total_cost += abs(vnew[k] - vold[k])
+                    except Exception:
+                        if vnew[k] != vold[k]:
+                            total_cost += 1
+
+            return total_cost
+
         base_conf = {"epsilon": 0.05,
                      "clist": [0.99, 1.99, 2.99],
-                     "dlist": [.1, 0.05, 0]}
-
-        key = aif_dataset.__class__.__name__
-        if key == ut_exp.sigmod_dataset_map['adult_sigmod']:
-            base_conf.update(distortion_fun=get_distortion_adult)
-        elif key == ut_exp.sigmod_dataset_map['compas']:
-            base_conf.update(distortion_fun=get_distortion_compas)
-        elif key == ut_exp.sigmod_dataset_map['german']:
-            base_conf.update(distortion_fun=get_distortion_german)
-        else:
-            raise ValueError(f'{key} not found in available dataset configurations')
+                     "dlist": [.1, 0.05, 0],
+                     "distortion_fun": get_distortion}
         return base_conf
 
 
@@ -324,13 +358,22 @@ class Kearns(GeneralAifModel):
 
 
 class ThresholdOptimizerWrapper(ThresholdOptimizer):
-    def __init__(self, *args, random_state=0, datasets=None, **kwargs):
+    def __init__(self, method_str, random_state=0, datasets=None, **kwargs):
+        self.method_str = method_str
+        estimator = kwargs.pop('base_model', None)
+        kwargs = dict(objective="accuracy_score",
+                      prefit=False,
+                      predict_method='predict_proba',
+                      estimator=estimator) | kwargs
+        if kwargs.get('eps', None):
+            logger = LoggerSingleton()
+            logger.warning(f"eps has no effect with {method_str} methos")
         constraint_code_to_name = {'dp': 'demographic_parity',
                                    'eo': 'equalized_odds'}
         if 'constraint_code' in kwargs:
             cc = kwargs.pop('constraint_code')
             kwargs['constraints'] = constraint_code_to_name.get(cc, cc)
-        super().__init__(*args, **kwargs)
+        super().__init__( **kwargs)
         self.random_state = random_state
 
     def fit(self, X, y, sensitive_features):
@@ -384,47 +427,53 @@ class ExponentiatedGradientPmf(ExponentiatedGradient):
         return res_dict
 
 
-additional_models_dict = {
-    'most_frequent': partial(sklearn.dummy.DummyClassifier, strategy="most_frequent"),
-    'LogisticRegression': sklearn.linear_model.LogisticRegression,
-}
+# class AdversarialDebiasingWrapper():
+#     def __init__(self, random_state, **kwargs):  # Random state is required here
+#         # Initialize your model with any required parameters
+#         self.model = AdversarialDebiasing(random_state, **kwargs)  # Random state is NOT required here, but it is recommended to set it.
+#
+#     def fit(self, X, y):  # Or fit(self, X, y, sensitive_features) if your model require sensitive features
+#         # Fit the model to the data
+#         self.model.fit(X, y)
+#
+#     def predict(self, X):  # Or predict(self, X, sensitive_features): if your model requires sensitive features
+#         # Predict using the model
+#         self.model.predict_proba(X)
 
 
-class PersonalizedWrapper:
-    def __init__(self, method_str, random_state=42, **kwargs):
-        self.method_str = method_str
-        self.model = additional_models_dict.get(method_str)(random_state=random_state, **kwargs)
+class AdversarialDebiasingWrapper(GeneralAifModel):
+    def __init__(self, datasets, random_state=None):
+        super().__init__(datasets)
+        tf.compat.v1.reset_default_graph()
+        self.sess = tf.compat.v1.Session()
+        self.model = AdversarialDebiasing(
+            privileged_groups=[
+                {self.aif_dataset.protected_attribute_names[0]: self.aif_dataset.privileged_protected_attributes[0]}],
+            unprivileged_groups=[
+                {self.aif_dataset.protected_attribute_names[0]: self.aif_dataset.unprivileged_protected_attributes[0]}],
+            scope_name=f'adversarial_debiasing_{random_state}',
+            sess=self.sess
+        )
 
-    def __getstate__(self):
-        state = self.__dict__.copy()
-        state['model'] = pickle.dumps(self.model)
-        return state
+    def fit(self, X, y, sensitive_features):
+        # aif_dataset = replace_values_aif360_dataset(X, y, sensitive_features, self.aif_dataset)
+        aif_dataset = BinaryLabelDataset(df=pd.concat([X, sensitive_features, y], axis=1), label_names=[y.name],
+                                         protected_attribute_names=[sensitive_features.name])
+        aif_dataset.features = np.array(aif_dataset.features)
+        self.model = self.model.fit(aif_dataset)
 
-    def __setstate__(self, state):
-        self.__dict__.update(state)
-        self.model = pickle.loads(state['model'])
+    def predict(self, X, sensitive_features):
+        df = pd.concat([X, sensitive_features], axis=1)
+        df['label'] = 0
+        aif_dataset = BinaryLabelDataset(df=df, label_names=['label'],
+                                         protected_attribute_names=[sensitive_features.name])
+        aif_dataset.features = np.array(aif_dataset.features)
 
-def create_wrapper(method_str, random_state=42, datasets=None, **kwargs):
-    model_class = additional_models_dict.get(method_str)
+        df_transformed = self.model.predict(aif_dataset)
+        return df_transformed.labels
 
-    params = inspect.signature(model_class.fit).parameters.keys()
-    if 'sensitive_features' in params:
-        def fit(self, X, y, sensitive_features):
-            self.model.fit(X, y, sensitive_features)
-            return self
-    else:
-        def fit(self, X, y, sensitive_features):
-            self.model.fit(X, y)
-            return self
-    PersonalizedWrapper.fit = fit
-
-    params = inspect.signature(model_class.predict).parameters.keys()
-    if 'sensitive_features' in params:
-        def predict(self, X, sensitive_features):
-            return self.model.predict(X, sensitive_features=sensitive_features)
-    else:
-        def predict(self, X):
-            return self.model.predict(X)
-    PersonalizedWrapper.predict = predict
-
-    return PersonalizedWrapper(method_str, random_state, **kwargs)
+    def __del__(self):
+        """Ensure the TensorFlow session is closed when the object is deleted."""
+        if self.sess is not None:
+            self.sess.close()
+            print("TensorFlow session closed.")

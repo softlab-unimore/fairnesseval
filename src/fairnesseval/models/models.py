@@ -1,9 +1,19 @@
-import logging
+import inspect
+import pickle
+from functools import partial
+import sklearn
 from sklearn.ensemble import GradientBoostingClassifier, HistGradientBoostingClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import RepeatedStratifiedKFold, GridSearchCV
-
 from fairnesseval.models import wrappers
+from fairnesseval.models.wrappers import AdversarialDebiasingWrapper
+
+
+additional_models_dict = {
+    'most_frequent': partial(sklearn.dummy.DummyClassifier, strategy="most_frequent"),
+    'LogisticRegression': sklearn.linear_model.LogisticRegression,
+    'adversarial_debiasing': AdversarialDebiasingWrapper,
+}
 
 
 def get_model_parameter_grid(base_model_code=None):
@@ -58,53 +68,74 @@ def finetune_model(base_model_code, X, y, random_seed=0, params_grid=None):
     return clf
 
 
-model_list = ['hybrids', 'unmitigated', 'fairlearn', 'ThresholdOptimizer', 'MetaFairClassifier',
-                  'AdversarialDebiasing', 'Kearns', 'Calmon', 'ZafarDI', 'Hardt', 'fairlearn_full', 'ZafarEO',
-                  'Feld', 'expgrad']
+methods_name_dict = {
+    'fairlearn_full': wrappers.ExponentiatedGradientPmf,
+    'fairlearn': wrappers.ExponentiatedGradientPmf,
+    'expgrad': wrappers.ExponentiatedGradientPmf,
+    'Kearns': wrappers.Kearns,
+    'Calmon': wrappers.CalmonWrapper,
+    'Feld': wrappers.FeldWrapper,
+    'ZafarDI': wrappers.ZafarDI,
+    'ZafarEO': wrappers.ZafarEO,
+    'Hardt': wrappers.Hardt,
+    'ThresholdOptimizer': wrappers.ThresholdOptimizerWrapper,
+}
+
+class PersonalizedWrapper:
+    def __init__(self, method_str, random_state=42, datasets=None, **kwargs):
+        self.method_str = method_str
+        model_class = methods_name_dict.get(method_str)
+        if 'datasets' in inspect.signature(model_class.__init__).parameters:
+            kwargs['datasets'] = datasets
+        self.model = model_class(random_state=random_state, **kwargs)
+
+    def __getstate__(self):
+        state = self.__dict__.copy()
+        state['model'] = pickle.dumps(self.model)
+        return state
+
+    def __setstate__(self, state):
+        self.__dict__.update(state)
+        self.model = pickle.loads(state['model'])
+
+
+def create_wrapper(method_str, random_state=42, datasets=None, **kwargs):
+    model_class = additional_models_dict.get(method_str, None)
+    if model_class is None:
+        raise ValueError(
+            f"Model {method_str} not found in available models."
+            f" Available models are {list(additional_models_dict.keys()) + list(methods_name_dict.keys())}")
+
+    params = inspect.signature(model_class.fit).parameters.keys()
+    if 'sensitive_features' in params:
+        def fit(self, X, y, sensitive_features):
+            self.model.fit(X, y, sensitive_features)
+            return self
+    else:
+        def fit(self, X, y, sensitive_features):
+            self.model.fit(X, y)
+            return self
+    PersonalizedWrapper.fit = fit
+
+    params = inspect.signature(model_class.predict).parameters.keys()
+    if 'sensitive_features' in params:
+        def predict(self, X, sensitive_features):
+            return self.model.predict(X, sensitive_features=sensitive_features)
+    else:
+        def predict(self, X):
+            return self.model.predict(X)
+    PersonalizedWrapper.predict = predict
+
+    return PersonalizedWrapper(method_str, random_state, datasets, **kwargs)
+
 
 def get_model(method_str, random_state=42, **kwargs):
-    param_dict = dict(method_str=method_str, random_state=random_state, )
-
-    methods_name_dict = {x: x for x in model_list}
-    if method_str == methods_name_dict['ThresholdOptimizer']:
-        estimator = kwargs.pop('base_model', None)
-        model = wrappers.ThresholdOptimizerWrapper(
-            estimator=estimator,
-            objective="accuracy_score",
-            prefit=False,
-            predict_method='predict_proba',
-            random_state=random_state, **kwargs)
-        if kwargs.get('eps') is not None:
-            logging.warning(f"eps has no effect with {method_str} methos")
-    elif method_str == methods_name_dict['AdversarialDebiasing']:
-        pass
-        # privileged_groups, unprivileged_groups = utils_prepare_data.find_privileged_unprivileged(**datasets)
-        # sess = tf.Session()
-        # # Learn parameters with debias set to True
-        # model = AdversarialDebiasing(privileged_groups=privileged_groups,
-        #                              unprivileged_groups=unprivileged_groups,
-        #                              scope_name='debiased_classifier',
-        #                              debias=True,
-        #                              sess=sess)
-    elif method_str == methods_name_dict['Kearns']:
-        model = wrappers.Kearns(**param_dict, **kwargs)
-    elif method_str == methods_name_dict['Calmon']:
-        model = wrappers.CalmonWrapper(**param_dict, **kwargs)
-    elif method_str == methods_name_dict['Feld']:
-        model = wrappers.FeldWrapper(**param_dict, **kwargs)
-    elif method_str == methods_name_dict['ZafarDI']:
-        model = wrappers.ZafarDI(**param_dict, **kwargs)
-    elif method_str == methods_name_dict['ZafarEO']:
-        model = wrappers.ZafarEO(**param_dict, **kwargs)
-    elif method_str == methods_name_dict['Hardt']:
-        model = wrappers.Hardt(**param_dict, **kwargs)
-    elif method_str in [methods_name_dict['fairlearn_full'], methods_name_dict['fairlearn'], methods_name_dict['expgrad']]:
-        model = wrappers.ExponentiatedGradientPmf(**param_dict, **kwargs)
+    kwargs = dict(method_str=method_str, random_state=random_state, ) | kwargs
+    if method_str in methods_name_dict:
+        model = methods_name_dict[method_str](**kwargs)
     else:
         try:
-            model = wrappers.create_wrapper(**param_dict, **kwargs)
+            model = create_wrapper(**kwargs)
         except Exception as e:
-            print(e)
-            raise ValueError(
-                f'the method specified ({method_str}) is not allowed. Valid options are {methods_name_dict.values()}')
+            raise e
     return model

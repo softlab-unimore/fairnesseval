@@ -8,9 +8,17 @@ sigmod_datasets = ['adult_sigmod', 'compas', 'german', ]
 DEMO_RESULTS_PATH = '../../streamlit/demo_results'
 
 experiment_definitions = [
+    {'experiment_id': 'testAdversarial',
+     'dataset_names': ['adult_sigmod'],
+     'model_names': ['adversarial_debiasing'],
+     'random_seeds': [0],
+     'results_path': DEMO_RESULTS_PATH,
+     # 'model_params': {'privileged_groups': 'sex', 'scope_name':'sex', 'sess':}
+
+     },
     {'experiment_id': 'demo.A.1r',
      'dataset_names': ['adult_sigmod'],
-     'model_names': [ 'ThresholdOptimizer', 'Feld', 'ZafarDI',],
+     'model_names': ['ThresholdOptimizer', 'Feld', 'ZafarDI', ],
      'base_model_code': ['lr'],
      'random_seeds': [0],
      'constraint_code': 'dp',

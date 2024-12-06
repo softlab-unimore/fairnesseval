@@ -25,7 +25,7 @@ import fairnesseval.experiment_definitions
 from fairnesseval import utils_experiment_parameters, utils_prepare_data, utils_general, metrics
 from fairnesseval.metrics import metrics_code_map
 from fairnesseval.utils_experiment_parameters import experiment_configurations
-from fairnesseval.utils_general import Singleton
+from fairnesseval.utils_general import Singleton, LoggerSingleton
 
 
 def add_minus(x):
