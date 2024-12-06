@@ -56,9 +56,7 @@ def adjust_dict_params(params: dict):
     for key, value in params.items():
         if isinstance(value, list) or isinstance(value, range):
             value = [x for x in value]
-        elif isinstance(value, dict):
-            value = [json.dumps(value)]
-        else:
+        elif not isinstance(value, dict):
             value = [value]
         params[key] = value
     return params

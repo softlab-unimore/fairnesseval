@@ -1,6 +1,5 @@
 import ast
 import itertools
-import logging
 import os
 import re
 import socket
@@ -304,17 +303,17 @@ def available_experiment_results(results_path):
     return experiments
 
 
-def load_results_experiment_id(experiment_code_list, dataset_results_path):
+def load_results_experiment_id(experiment_code_list, results_path):
     df_list = []
     for experiment_code in experiment_code_list:
         cur_dir = None
-        for host_dir in os.scandir(dataset_results_path):
+        for host_dir in os.scandir(results_path):
             tmp_dir = os.path.join(host_dir, experiment_code)
             if os.path.isdir(host_dir) and os.path.exists(tmp_dir):
                 cur_dir = tmp_dir
                 break
         if cur_dir is None or not os.path.exists(cur_dir):
-            cur_dir = os.path.join(dataset_results_path, experiment_code)
+            cur_dir = os.path.join(results_path, experiment_code)
         if cur_dir is None or not os.path.exists(cur_dir):
             logger = LoggerSingleton()
             logger.warning(f'{cur_dir} does not exists. Skipped.')

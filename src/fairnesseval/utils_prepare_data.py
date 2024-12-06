@@ -126,9 +126,11 @@ def convert_from_aif360_to_df(dataset, dataset_name=None):
     # X = data.iloc[:, :-1]
     # y = data.iloc[:, -1] #pd.Series(dataset.labels.flatten(), name=dataset.label_names[0])
     # A = pd.Series(dataset.protected_attributes.flatten(), name=dataset.protected_attribute_names[0])
-    X = pd.DataFrame(dataset.features, columns=dataset.feature_names)
-    y = pd.Series(dataset.labels.astype(int).ravel(), name=dataset.label_names[0])
     A = pd.Series(dataset.protected_attributes.astype(int).ravel(), name=dataset.protected_attribute_names[0])
+    # X is feature names minus the sensitive attribute
+    X = pd.DataFrame(dataset.features, columns=dataset.feature_names)
+    # X = X.drop(dataset.protected_attribute_names, axis=1) # TODO include the sensitive attribute for reproducibility
+    y = pd.Series(dataset.labels.astype(int).ravel(), name=dataset.label_names[0])
     # if dataset.__class__.__name__ == 'GermanDataset':
     #     y[y == 2] = 0
     return X, y, A
@@ -294,7 +296,7 @@ def load_generic_dataset(dataset_str, dataset_params):
 
 def get_dataset(dataset_str, prm=None):
     if prm:
-        dataset_params = prm.get(['dataset_params'], None)  # can be passed to the dataset loader
+        dataset_params = prm.get('dataset_params', None)  # can be passed to the dataset loader
     else:
         prm = {}
         dataset_params = None
