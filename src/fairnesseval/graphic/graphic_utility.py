@@ -1,6 +1,5 @@
 import ast
 import itertools
-import logging
 from copy import deepcopy
 
 import numpy as np
@@ -17,7 +16,7 @@ from fairnesseval.graphic.utils_results_data import get_info, get_confidence_err
     aggregate_phase_time, filter_results, seed_columns, prepare_for_plot, constraint_code_to_name
 import matplotlib as mpl
 
-from fairnesseval.utils_general import intersection_sorted, difference_sorted
+from fairnesseval.utils_general import intersection_sorted, difference_sorted, LoggerSingleton
 
 sns.set()  # for plot styling
 # sns.set(rc={'figure.figsize':(8,6)})
@@ -661,7 +660,8 @@ def plot_all_df_subplots(all_df, model_list, chart_name, save, show=True, groupi
             tmp_dict = [ax.get_legend_handles_labels() for ax in axes_array.flat[::-1]]
             handles, labels = max(tmp_dict, key=lambda x: len(x[1]))
             if len(labels) != len(model_list):
-                logging.warning('Some model are not displayed.')
+                logger = LoggerSingleton()
+                logger.warning('Some model are not displayed.')
 
             if pl_util.params.get('legend_hook', None) is not None:
                 pl_util.params['legend_hook'](fig, handles, labels)
@@ -901,7 +901,8 @@ def plot_demo_subplots(all_df, model_list, chart_name, save, show=False, groupin
         tmp_dict = [ax.get_legend_handles_labels() for ax in axes_array.flat[::-1]]
         handles, labels = max(tmp_dict, key=lambda x: len(x[1]))
         if len(labels) != len(model_list):
-            logging.warning('Some model are not displayed.')
+            logger = LoggerSingleton()
+            logger.warning('Some model are not displayed.')
 
         if pl_util.params.get('legend_hook', None) is not None:
             pl_util.params['legend_hook'](fig, handles, labels)

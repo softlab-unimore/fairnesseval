@@ -12,6 +12,7 @@ import pandas as pd
 from scipy.stats import sem, t
 
 import fairnesseval.run
+from fairnesseval.utils_general import LoggerSingleton
 
 seed_columns = ['random_seed', 'train_test_fold', 'train_test_seed']
 cols_to_synch = ['dataset_name', 'base_model_code', 'constraint_code', 'eps', 'train_test_seed', 'random_seed',
@@ -315,7 +316,8 @@ def load_results_experiment_id(experiment_code_list, dataset_results_path):
         if cur_dir is None or not os.path.exists(cur_dir):
             cur_dir = os.path.join(dataset_results_path, experiment_code)
         if cur_dir is None or not os.path.exists(cur_dir):
-            logging.warning(f'{cur_dir} does not exists. Skipped.')
+            logger = LoggerSingleton()
+            logger.warning(f'{cur_dir} does not exists. Skipped.')
             continue
 
         for filepath in os.scandir(cur_dir):

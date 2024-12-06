@@ -1,5 +1,4 @@
 import streamlit as st
-import logging
 import os
 from fairnesseval import utils_experiment_parameters as exp_params
 from fairnesseval.run import launch_experiment_by_config

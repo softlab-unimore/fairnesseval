@@ -122,21 +122,14 @@ def launch_experiment_by_config(exp_dict: dict):
         except Exception as e:
             print(f'Error deleting files in {results_dir}: {e}')
             pass
-    # logger = logging.getLogger(__name__)
-    logging.basicConfig(level=logging.INFO,
-                        format='%(asctime)s %(levelname)s:%(name)s: %(message)s', datefmt='%d/%m/%y %H:%M:%S',
-                        handlers=[logging.FileHandler(os.path.join(results_dir, 'run.log'), mode='a'),
-                                  logging.StreamHandler()], force=True)
+    logger = LoggerSingleton(save_dir=results_dir, reset=True)
 
-    def exc_handler(exctype, value, tb):
-        logging.exception(''.join(traceback.format_exception(exctype, value, tb)))
 
-    sys.excepthook = exc_handler
-    logging.info(f'Parameters of experiment {experiment_id}\n' +
+    logger.info(f'Parameters of experiment {experiment_id}\n' +
                  json.dumps(exp_dict_orig, default=list).replace(', \"', ',\n\t\"'))
 
     a = datetime.now()
-    logging.info(f'Started logging.')
+    logger.info(f'Started logging.')
     if base_model_code_list is None:
         base_model_code_list = [None]
     to_iter = itertools.product(base_model_code_list, dataset_name_list, model_name_list)
@@ -144,8 +137,8 @@ def launch_experiment_by_config(exp_dict: dict):
     for base_model_code, dataset_name, model_name in to_iter:
         gc.collect()
         turn_a = datetime.now()
-        logging.info(f'Starting combination:'
-                     f' base model: {base_model_code}, dataset_name: {dataset_name}, model_name: {model_name}')
+        logger.info(f'Starting combination:'
+                     f'dataset_name: {dataset_name}, model_name: {model_name}')
         # args = [dataset_name, model_name] + params
         args = params
         kwargs = {'dataset_name': dataset_name, 'model_name': model_name}
@@ -158,22 +151,25 @@ def launch_experiment_by_config(exp_dict: dict):
         try:
             exp_run.run()
         except Exception as e:
-            logging.info('****' * 10 + '\n' * 4 + f'Exception occured: {e}' + '\n' * 4 + '****' * 10)
+            logger.info('****' * 10 + '\n' * 4 + f'Exception occured: {e}' + '\n' * 4 + '****' * 10)
             gettrace = getattr(sys, 'gettrace', None)
             if gettrace is None and '--debug' not in params:
                 pass
             elif gettrace():
+                LoggerSingleton.close(logger)
                 raise e
             else:
+                LoggerSingleton.close(logger)
                 raise e
+
         turn_b = datetime.now()
-        logging.info(
-            f'Ended: {base_model_code}, dataset_name: {dataset_name}, model_name: {model_name} in:\n {turn_b - turn_a}')
+        logger.info(
+            f'Ended: dataset_name: {dataset_name}, model_name: {model_name} in:\n {turn_b - turn_a}')
     b = datetime.now()
-    logging.info(f'Ended experiment. It took: {b - a}')
+    logger.info(f'Ended experiment. It took: {b - a}')
     sys.argv = original_argv
 
-    logging.shutdown()
+    LoggerSingleton.close(logger)
 
 
 def launch_experiment_by_id(experiment_id: str, config_file_path=None):
@@ -362,7 +358,8 @@ class ExperimentRun(metaclass=Singleton):
                     all_params = dict(zip(params_keys, values))
                     self.data_dict.update(**all_params)
 
-                    logging.info(f'Starting step: random_seed: {random_seed}, train_test_seed: {train_test_seed}, '
+                    logger = LoggerSingleton()
+                    logger.info(f'Starting step: random_seed: {random_seed}, train_test_seed: {train_test_seed}, '
                                  f'train_test_fold: {train_test_fold} \n'
                                  + json.dumps(all_params, default=list))
                     a = datetime.now()
@@ -370,7 +367,7 @@ class ExperimentRun(metaclass=Singleton):
                     self.run_model(datasets_divided=datasets_divided, random_seed=random_seed,
                                    model_params=turn_model_params)
                     b = datetime.now()
-                    logging.info(f'Ended step in: {b - a}')
+                    logger.info(f'Ended step in: {b - a}')
 
     def run_model(self, datasets_divided, random_seed, model_params):
         results_list = []
@@ -873,7 +870,8 @@ class ExperimentRun(metaclass=Singleton):
         # a = datetime.now()
         # model.fit(*train_dataset)
         # b = datetime.now()
-        logging.info(f'Starting fit...')
+        logger = LoggerSingleton()
+        logger.info(f'Starting fit...')
         if isinstance(train_dataset, dict):
             a = datetime.now()
             model.fit(**train_dataset)
@@ -883,7 +881,7 @@ class ExperimentRun(metaclass=Singleton):
             model.fit(*train_dataset)
             b = datetime.now()
 
-        logging.info(f'Ended fit in: {b - a} ||| Starting evaluation...')
+        logger.info(f'Ended fit in: {b - a} ||| Starting evaluation...')
         time_fit_dict = {'time': (b - a).total_seconds(), 'phase': 'train'}
 
         exp_run = ExperimentRun()
@@ -893,7 +891,7 @@ class ExperimentRun(metaclass=Singleton):
                                                               metrics_dict=exp_run.metrics_dict,
                                                               return_times=True)
         b = datetime.now()
-        logging.info(f'Ended evaluation:  in: {b - a}')
+        logger.info(f'Ended evaluation:  in: {b - a}')
         time_eval_dict = {'time': (b - a).total_seconds(), 'phase': 'evaluation', 'metrics_time': metrics_time}
         return metrics_res, time_fit_dict, time_eval_dict
 
