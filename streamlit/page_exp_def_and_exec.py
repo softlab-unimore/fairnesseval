@@ -1,9 +1,12 @@
 import streamlit as st
 import os
 from fairnesseval import utils_experiment_parameters as exp_params
+from fairnesseval.models.models import all_available_models
 from fairnesseval.run import launch_experiment_by_config
 from fairnesseval.utils_general import get_project_root
 from redirect import stdout, stderr, stdouterr
+
+from components.open_folder import open_folder
 
 
 def stpage01_exp_definition_and_execution():
@@ -15,14 +18,8 @@ def stpage01_exp_definition_and_execution():
         if file.endswith('.csv'):
             all_datasets.append(file)
 
-    model_list = [
-        'LogisticRegression',
-        'Expgrad',
-        'ThresholdOptimizer',
-        'ZafarDI',
-        'ZafarEO',
-        'Feld'
-    ]
+    model_list = all_available_models
+    model_list = [model for model in model_list if 'fairlearn' not in model]
 
     def eval_none(x):
         if not x.strip():
@@ -95,5 +92,9 @@ def stpage01_exp_definition_and_execution():
                     launch_experiment_by_config(experiment_conf)
 
                     st.success("Experiment successfully completed!")
+                    # open_folder('Open results folder', results_path) # not working
                 except Exception as e:
                     print(f"Error during experiment execution: {str(e)}")
+
+if __name__ == '__main__':
+    stpage01_exp_definition_and_execution()

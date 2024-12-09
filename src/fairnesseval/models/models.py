@@ -77,14 +77,14 @@ methods_name_dict = {
     'Feld': wrappers.FeldWrapper,
     'ZafarDI': wrappers.ZafarDI,
     'ZafarEO': wrappers.ZafarEO,
-    'Hardt': wrappers.Hardt,
+    # 'Hardt': wrappers.Hardt,
     'ThresholdOptimizer': wrappers.ThresholdOptimizerWrapper,
 }
 
 class PersonalizedWrapper:
     def __init__(self, method_str, random_state=42, datasets=None, **kwargs):
         self.method_str = method_str
-        model_class = methods_name_dict.get(method_str)
+        model_class = additional_models_dict.get(method_str)
         if 'datasets' in inspect.signature(model_class.__init__).parameters:
             kwargs['datasets'] = datasets
         self.model = model_class(random_state=random_state, **kwargs)
@@ -98,13 +98,14 @@ class PersonalizedWrapper:
         self.__dict__.update(state)
         self.model = pickle.loads(state['model'])
 
+all_available_models = list(additional_models_dict.keys()) + list(methods_name_dict.keys())
 
 def create_wrapper(method_str, random_state=42, datasets=None, **kwargs):
     model_class = additional_models_dict.get(method_str, None)
     if model_class is None:
         raise ValueError(
             f"Model {method_str} not found in available models."
-            f" Available models are {list(additional_models_dict.keys()) + list(methods_name_dict.keys())}")
+            f" Available models are {all_available_models}")
 
     params = inspect.signature(model_class.fit).parameters.keys()
     if 'sensitive_features' in params:
