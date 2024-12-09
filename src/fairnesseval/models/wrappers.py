@@ -199,32 +199,33 @@ class FeldWrapper(GeneralAifModel):
         return self.base_model.predict(X)
 
 
-class Hardt(GeneralAifModel):
-    def __init__(self, random_state, method_str=None, base_model=None, datasets=None, eps=None, constraint_code=None, ):
-        super().__init__(datasets)
-        self.method_str = method_str
-        X, y, A = datasets
-        self.base_model = base_model
-        self.postprocess_model = EqOddsPostprocessing(
-            privileged_groups=[
-                {self.aif_dataset.protected_attribute_names[0]: self.aif_dataset.privileged_protected_attributes}],
-            unprivileged_groups=[
-                {self.aif_dataset.protected_attribute_names[0]: self.aif_dataset.unprivileged_protected_attributes}],
-            seed=random_state)
-
-    def fit(self, X, y, sensitive_features):
-        aif_dataset = replace_values_aif360_dataset(X, y, sensitive_features, self.aif_dataset)
-        self.base_model.fit(X, y)
-        y_pred = self.base_model.predict(X)
-        aif_dataset_pred = aif_dataset.copy()
-        aif_dataset_pred.labels = y_pred
-        self.postprocess_model.fit(dataset_true=aif_dataset, dataset_pred=aif_dataset_pred)
-
-    def predict(self, X, sensitive_features):
-        y_pred = self.base_model.predict(X)
-        aif_dataset = replace_values_aif360_dataset(X, y_pred, sensitive_features, self.aif_dataset)
-        aif_corrected = self.postprocess_model.predict(aif_dataset)
-        return aif_corrected.labels
+# class Hardt(GeneralAifModel):
+#     def __init__(self, random_state, method_str=None, base_model=None, datasets=None, eps=None, constraint_code=None, ):
+#         super().__init__(datasets)
+#         self.method_str = method_str
+#         X, y, A = datasets[:3]
+#         self.base_model = base_model
+#         self.postprocess_model = EqOddsPostprocessing(
+#             privileged_groups=[
+#                 {self.aif_dataset.protected_attribute_names[0]: self.aif_dataset.privileged_protected_attributes}],
+#             unprivileged_groups=[
+#                 {self.aif_dataset.protected_attribute_names[0]: self.aif_dataset.unprivileged_protected_attributes}],
+#             seed=random_state)
+#
+#     def fit(self, X, y, sensitive_features):
+#         aif_dataset = BinaryLabelDataset(df=pd.concat([X, sensitive_features, y], axis=1), label_names=[y.name],
+#                                          protected_attribute_names=[sensitive_features.name])
+#         self.base_model.fit(X, y)
+#         y_pred = self.base_model.predict(X)
+#         aif_dataset_pred = aif_dataset.copy()
+#         aif_dataset_pred.labels = y_pred
+#         self.postprocess_model.fit(dataset_true=aif_dataset, dataset_pred=aif_dataset_pred)
+#
+#     def predict(self, X, sensitive_features):
+#         y_pred = self.base_model.predict(X)
+#         aif_dataset = replace_values_aif360_dataset(X, y_pred, sensitive_features, self.aif_dataset)
+#         aif_corrected = self.postprocess_model.predict(aif_dataset)
+#         return aif_corrected.labels
 
 
 class ZafarDI:
