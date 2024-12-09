@@ -52,6 +52,7 @@ def to_arg(list_p, dict_p, original_argv=None):
         # res_string += [f'{key}={value}']
     return res_string
 
+
 def adjust_dict_params(params: dict):
     for key, value in params.items():
         if isinstance(value, list) or isinstance(value, range):
@@ -60,6 +61,7 @@ def adjust_dict_params(params: dict):
             value = [value]
         params[key] = value
     return params
+
 
 def get_config_by_id(experiment_id, config_file_path=None):
     """
@@ -122,9 +124,8 @@ def launch_experiment_by_config(exp_dict: dict):
             pass
     logger = LoggerSingleton(save_dir=results_dir, reset=True)
 
-
     logger.info(f'Parameters of experiment {experiment_id}\n' +
-                 json.dumps(exp_dict_orig, default=list).replace(', \"', ',\n\t\"'))
+                json.dumps(exp_dict_orig, default=list).replace(', \"', ',\n\t\"'))
 
     a = datetime.now()
     logger.info(f'Started logging.')
@@ -136,7 +137,7 @@ def launch_experiment_by_config(exp_dict: dict):
         gc.collect()
         turn_a = datetime.now()
         logger.info(f'Starting combination:'
-                     f'dataset_name: {dataset_name}, model_name: {model_name}')
+                    f'dataset_name: {dataset_name}, model_name: {model_name}')
         # args = [dataset_name, model_name] + params
         args = params
         kwargs = {'dataset_name': dataset_name, 'model_name': model_name}
@@ -358,8 +359,8 @@ class ExperimentRun(metaclass=Singleton):
 
                     logger = LoggerSingleton()
                     logger.info(f'Starting step: random_seed: {random_seed}, train_test_seed: {train_test_seed}, '
-                                 f'train_test_fold: {train_test_fold} \n'
-                                 + json.dumps(all_params, default=list))
+                                f'train_test_fold: {train_test_fold} \n'
+                                + json.dumps(all_params, default=list))
                     a = datetime.now()
                     turn_model_params = {key: all_params[key] for key in self.prm['model_params'].keys()}
                     self.run_model(datasets_divided=datasets_divided, random_seed=random_seed,
@@ -908,7 +909,8 @@ class ExperimentRun(metaclass=Singleton):
         model.set_params(**best_params)
         return model
 
-    def tuning_step(self, base_model_code, X, y, fractions, random_seed=0, redo_tuning=False, params_grid=None):
+    def tuning_step(self, base_model_code, X: pd.DataFrame, y: pd.Series, fractions, random_seed=0, redo_tuning=False,
+                    params_grid=None):
         if base_model_code is None:
             print(f'base_model_code is None. Not starting finetuning.')
             return
@@ -944,8 +946,8 @@ class ExperimentRun(metaclass=Singleton):
                     sample_mask, _ = train_test_split(sample_mask, train_size=turn_frac, stratify=y,
                                                       random_state=random_seed, shuffle=True)
                 a = datetime.now()
-                clf = fe.models.finetune_model(base_model_code, pd.DataFrame(X).iloc[sample_mask].values,
-                                               pd.Series(y.ravel()).iloc[sample_mask].values,
+                clf = fe.models.finetune_model(base_model_code, X.iloc[sample_mask],
+                                               y.iloc[sample_mask],
                                                random_seed=random_seed, params_grid=params_grid)
                 b = datetime.now()
                 joblib.dump(clf, path, compress=1)

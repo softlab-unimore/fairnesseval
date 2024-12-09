@@ -17,7 +17,8 @@ class TestModels(unittest.TestCase):
     def tearDown(self):
         # Clean up the test results directory after the test
         try:
-            shutil.rmtree(self.base_config['results_path'])
+            if os.path.exists(self.base_config['results_path']):
+                shutil.rmtree(self.base_config['results_path'])
         except:
             # try to remove the directory again
             try:
@@ -37,7 +38,7 @@ class TestModels(unittest.TestCase):
             'random_seeds': [1],
             'train_test_fold': [0],
         }
-        self.check_results_pre_post_pre_post(config)
+        self.check_results_pre_post(config)
 
     def test_Calmon(self):
         config = self.base_config | {
@@ -85,7 +86,7 @@ class TestModels(unittest.TestCase):
             'random_seeds': [1],
             'train_test_fold': [0],
         }
-        self.check_results_pre_post_pre_post(config)
+        self.check_results_pre_post(config)
 
     def test_expgrad(self):
         config = self.base_config | {

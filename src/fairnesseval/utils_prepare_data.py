@@ -129,7 +129,7 @@ def convert_from_aif360_to_df(dataset, dataset_name=None):
     A = pd.Series(dataset.protected_attributes.astype(int).ravel(), name=dataset.protected_attribute_names[0])
     # X is feature names minus the sensitive attribute
     X = pd.DataFrame(dataset.features, columns=dataset.feature_names)
-    # X = X.drop(dataset.protected_attribute_names, axis=1) # TODO include the sensitive attribute for reproducibility
+    X = X.drop(dataset.protected_attribute_names, axis=1) # TODO include the sensitive attribute for reproducibility
     y = pd.Series(dataset.labels.astype(int).ravel(), name=dataset.label_names[0])
     # if dataset.__class__.__name__ == 'GermanDataset':
     #     y[y == 2] = 0
