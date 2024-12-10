@@ -1,5 +1,3 @@
-from random import random
-
 # Fairness Evaluation and Testing Repository
 
 Automated decision-making systems can potentially introduce biases, raising ethical concerns. This has led to the
@@ -16,14 +14,35 @@ In this demonstration, we highlight the functionality of FairnessEval in the sel
 models.
 We compare various approaches and simulate deployment scenarios to showcase FairnessEval effectiveness.
 
-## fairnesseval DEMO
+## Instalation
+Open a terminal in a directory where you want to install Fairnesseval and run the following command:
 
+```bash
+git clone https://github.com/softlab-unimore/fairnesseval.git
+pip install -e fairnesseval
+```
+
+
+## Demonstration
+A demonstration web application for FairnessEval is available.  
+To run the demonstration, navigate to the `streamlit` folders and run the streamlit server:
+
+```bash
+cd fairnesseval
+cd streamlit
+streamlit run page_welcome.py
+```
+In [here](streamlit%2FREADME.md) you can find more information about the Streamlit UI and examples of how to use it. 
+
+A page on your local host should be opened: you can start to use Fairnesseval.
+
+### Alternatively
 [Here](https://github.com/softlab-unimore/fairnesseval/blob/main/notebooks/DEMO_fairnesseval.ipynb)
 you can find a demo notebook with working examples.
 
 You can interact with the notebook and run the library with your experiments.
 
-## fairnesseval API Quick Start
+## API Quick Start
 
 [Here](https://github.com/softlab-unimore/fairnesseval/blob/main/notebooks/fairnesseval_Quick_Start.ipynb)
 you can find a quick start guide to the fairnesseval API with working examples.
@@ -44,18 +63,13 @@ you can find a quick start guide to the fairnesseval API with working examples.
 | `train_test_fold`           | List of `train_test_fold` to run with k-fold.                                                                                                                                                                                                                                        |
 | `model_params`              | Dict with key, value pairs of model hyper parameter names (key) and list of values to be iterated (values). When multiple list of parameters are specified the cross product is used to generate all the combinations to test.                                                       |
 | `debug`                     | Debug mode if set, the program will stop at the first exception.                                                                                                                                                                                                                     |
+| `base_model_grid_params`    | Base model hyper parameters for Grid search. Dict (or List[Dict]) with pairs of names (key) and list of values to be iterated (values). This object will be passed to GridSearch as is to perform the grid search.                                                                   |
+
 
 This table provides a clear and concise overview of the parameters and their descriptions.
 
 [//]: # (TODO define synthetic generations. explain how to use it. Automatically find and load it.)
 
-## Installation
-
-Clone the repository, navigate to the root directory, and run the following command:
-
-```bash
- pip install -e .
-```
 
 ## Adding a New Custom Model
 
@@ -119,7 +133,7 @@ experiment_conf = {
 By following these steps, you can integrate a new custom model into the FairnessEval framework and use it for your
 experiments.
 
-# Adding a new Dataset
+## Adding a new Dataset
 
 Adding a New Dataset
 To add a new dataset to the FairnessEval framework, follow these steps:
@@ -158,3 +172,8 @@ experiment_conf = {
 
 By following these
 steps, you can integrate a new dataset into the FairnessEval framework and use it for your experiments.
+
+
+## Experiment Configurations of 'Fair Classification with a Scalable Reduction Approach'
+The experiment configurations for the article 'Fair Classification with a Scalable Reduction Approach' 
+are available at [utils_experiment_parameters.py](src%2Ffairnesseval%2Futils_experiment_parameters.py)
