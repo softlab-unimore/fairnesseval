@@ -9,6 +9,7 @@ UPLOAD_DIRECTORY = "../datasets/"
 if not os.path.exists(UPLOAD_DIRECTORY):
     os.makedirs(UPLOAD_DIRECTORY)
 
+
 def save_uploaded_file(uploaded_file):
     """Save the uploaded file to the defined directory."""
     try:
@@ -22,9 +23,11 @@ def save_uploaded_file(uploaded_file):
         st.error(f"Error saving file: {e}")
         return None
 
+
 def st_dataset_upload():
     st.title("CSV File Upload")
-
+    st.markdown(
+        "Ensure your dataset is in CSV format. The second last column should be the target variable, and the last column should be the sensitive attribute.")
     uploaded_file = st.file_uploader("Choose a CSV file", type="csv")
 
     if uploaded_file is not None:
@@ -37,6 +40,7 @@ def st_dataset_upload():
         saved_path = save_uploaded_file(uploaded_file)
         if saved_path:
             st.success(f"File saved successfully: {saved_path}")
+
 
 if __name__ == "__main__":
     st_dataset_upload()

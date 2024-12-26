@@ -1,5 +1,6 @@
 # prova5_1.py
 import json
+import os
 
 import numpy as np
 
@@ -7,9 +8,11 @@ import streamlit as st
 import matplotlib.pyplot as plt
 from fairnesseval.graphic import utils_results_data
 from fairnesseval.graphic.graphic_demoB import plot_function_B
+from fairnesseval.utils_general import get_project_root
 
-# Directory for results
-res_dir = '../streamlit/demo_results'
+from components.style import st_normal
+
+res_dir = os.path.join(get_project_root(), 'streamlit','demo_results')
 
 # Load results
 def load_results(experiment_codes):
@@ -51,36 +54,37 @@ def generate_graph(chart_name, experiment_code_list, model_list, x_axis, y_axis_
 
 # Function for menu
 def stpage03_multiplot():
-    # Titolo
-    st.title("Presentation Multiple Plots")
+    with st_normal():
+        # Titolo
+        st.title("Presentation Multiple Plots")
 
-    # Select graphic's name
-    chart_name = st.text_input('Graphic name', 'demo.B')
+        # Select graphic's name
+        chart_name = st.text_input('Graphic name', 'demo.B')
 
-    # Select avaiable experiment
-    experiment_list = sorted(utils_results_data.available_experiment_results(res_dir))
-    selected_experiments = st.multiselect('Experiment', experiment_list)
+        # Select avaiable experiment
+        experiment_list = sorted(utils_results_data.available_experiment_results(res_dir))
+        selected_experiments = st.multiselect('Experiment', experiment_list)
 
-    # Load data
-    if selected_experiments:
-        results_df = load_results(selected_experiments)
-        if results_df is not None:
-            # Select models to show
-            model_list = results_df['model_code'].unique().tolist()
-            selected_models = st.multiselect('Models', model_list, default=model_list)
+        # Load data
+        if selected_experiments:
+            results_df = load_results(selected_experiments)
+            if results_df is not None:
+                # Select models to show
+                model_list = results_df['model_code'].unique().tolist()
+                selected_models = st.multiselect('Models', model_list, default=model_list)
 
-            # Select attribute for  X  Y
-            columns = results_df.columns.tolist()
-            x_axis = st.selectbox('X-Attributes', sorted(columns))
-            y_axis = st.multiselect('Y-Attributes', sorted(columns))
+                # Select attribute for  X  Y
+                columns = results_df.columns.tolist()
+                x_axis = st.selectbox('X-Attributes', sorted(columns))
+                y_axis = st.multiselect('Y-Attributes', sorted(columns))
 
-            # Select attribute to group (optional)
-            grouping_col = st.selectbox('Grouping attributes (Optional)', [None] + sorted(columns))
+                # Select attribute to group (optional)
+                grouping_col = st.selectbox('Grouping attributes (Optional)', [None] + sorted(columns))
 
-            # Botton to generate graphic
-            if st.button('Generate graphic'):
-                generate_graph(chart_name, selected_experiments, selected_models, x_axis, y_axis, grouping_col, columns)
+                # Botton to generate graphic
+                if st.button('Generate graphic'):
+                    generate_graph(chart_name, selected_experiments, selected_models, x_axis, y_axis, grouping_col, columns)
+            else:
+                st.warning("No experiment available with the data you have selected")
         else:
-            st.warning("No experiment available with the data you have selected")
-    else:
-        st.warning("Select one experiment.")
+            st.warning("Select one experiment.")

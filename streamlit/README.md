@@ -6,7 +6,7 @@ To run the demonstration, navigate to the `streamlit` folders and run the stream
 ```bash
 cd fairnesseval
 cd streamlit 
-streamlit run Farnesseval.py
+streamlit run Fairnesseval.py
 ```
 
 ## Example Experiment

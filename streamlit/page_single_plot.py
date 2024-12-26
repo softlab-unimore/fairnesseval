@@ -1,11 +1,17 @@
 # prova4.py
+import os
+
 import streamlit as st
 import matplotlib.pyplot as plt
 from fairnesseval.graphic import utils_results_data
 from fairnesseval.graphic.graphic_demoB import plot_function_B
+from fairnesseval.utils_general import get_project_root
+from components.style import st_normal
 
 # Directory for results
-res_dir = '../streamlit/demo_results'
+res_dir = os.path.join(get_project_root(), 'streamlit','demo_results')
+
+
 
 # Upload data
 def load_results(experiment_codes):
@@ -48,41 +54,42 @@ def generate_graph(chart_name, experiment_code_list, model_list, x_axis, y_axis_
 
 # Definition for page 2 for menu
 def stpage02_single_plot():
-    # title
-    st.title("Presentation Single Dataset")
+    with st_normal():
+        # title
+        st.title("Presentation Single Dataset")
 
-    # Select graphic's name
-    chart_name = st.text_input('Graphic name', 'demo.A')
+        # Select graphic's name
+        chart_name = st.text_input('Graphic name', 'demo.A')
 
-    # Seelect avaiable experiment
-    experiment_list = sorted(utils_results_data.available_experiment_results(res_dir))
-    selected_experiments = st.multiselect('Experiment', experiment_list)
+        # Seelect avaiable experiment
+        experiment_list = sorted(utils_results_data.available_experiment_results(res_dir))
+        selected_experiments = st.multiselect('Experiment', experiment_list)
 
-    # Loading data
-    if selected_experiments:
-        results_df = load_results(selected_experiments)
-        if results_df is not None:
-            # Select model
-            model_list = results_df['model_code'].unique().tolist()
-            selected_models = st.multiselect('Models', model_list, default=model_list)
+        # Loading data
+        if selected_experiments:
+            results_df = load_results(selected_experiments)
+            if results_df is not None:
+                # Select model
+                model_list = results_df['model_code'].unique().tolist()
+                selected_models = st.multiselect('Models', model_list, default=model_list)
 
-            # Select attributes for axis X and Y
-            columns = results_df.columns.tolist()
-            x_axis = st.selectbox('X-Attributes', sorted(columns))
-            y_axis = st.selectbox('Y-Attributes', sorted(columns))
+                # Select attributes for axis X and Y
+                columns = results_df.columns.tolist()
+                x_axis = st.selectbox('X-Attributes', sorted(columns))
+                y_axis = st.selectbox('Y-Attributes', sorted(columns))
 
-            # Select dataset
-            datasets = results_df['dataset_name'].unique().tolist()
-            selected_dataset = st.selectbox('Select Dataset', datasets)
+                # Select dataset
+                datasets = results_df['dataset_name'].unique().tolist()
+                selected_dataset = st.selectbox('Select Dataset', datasets)
 
-            # Seelect grouping attribute (optionale)
-            grouping_col = st.selectbox('Grouping attribute (Optional)', [None] + sorted(columns))
+                # Seelect grouping attribute (optionale)
+                grouping_col = st.selectbox('Grouping attribute (Optional)', [None] + sorted(columns))
 
-            # Button to generate graphic
-            if st.button('Generate graphic'):
-                generate_graph(chart_name, selected_experiments, selected_models, x_axis, y_axis, grouping_col,
-                               selected_dataset)
+                # Button to generate graphic
+                if st.button('Generate graphic'):
+                    generate_graph(chart_name, selected_experiments, selected_models, x_axis, y_axis, grouping_col,
+                                   selected_dataset)
+            else:
+                st.warning("No experiment available with the data you have selected.")
         else:
-            st.warning("No experiment available with the data you have selected.")
-    else:
-        st.warning("Select one experiment.")
+            st.warning("Select one experiment.")

@@ -1,4 +1,5 @@
 import streamlit as st
+import streamlit_scrollable_textbox as stx
 import os
 from fairnesseval import utils_experiment_parameters as exp_params
 from fairnesseval.models.models import all_available_models
@@ -8,8 +9,29 @@ from redirect import stdout, stderr, stdouterr
 
 from components.open_folder import open_folder
 
+# if 'log_area' not in st.session_state:
+#     st.session_state['log_area'] = ''
+#
+# js = f"""
+# <script>
+#     function scroll(dummy_var_to_force_repeat_execution){{
+#         var textAreas = parent.document.getElementsByClassName('st-key-log_area');
+#         for (let index = 0; index < textAreas.length; index++) {{
+#             textAreas[index].scrollTop = textAreas[index].scrollHeight;
+#         }}
+#     }}
+#     scroll({len(st.session_state.log_area)})
+# </script>
+# """
+
 
 def stpage01_exp_definition_and_execution():
+    results_path = os.path.join(get_project_root(), 'streamlit', 'demo_results')
+    # find an available experiment ID. Cycle 'demo.{i:02d}' until a free one is found.
+    i = 0
+    while os.path.exists(os.path.join(results_path, f'demo.{i:02d}')):
+        i += 1
+
     # List of datasets and models
     all_datasets = exp_params.ACS_dataset_names + ['adult', 'compas', 'german']
     # scan folder ../datasets for other csv datasets and add them to the list
@@ -37,14 +59,14 @@ def stpage01_exp_definition_and_execution():
     selected_datasets = st.multiselect(
         'Datasets',
         sorted(all_datasets),
-        default=[sorted(all_datasets)[-3]]
+        # default=[sorted(all_datasets)[-3]]
     )
 
     # Model selection
     selected_models = st.multiselect(
         'Models',
         sorted(model_list),
-        default=[sorted(model_list)[2]]
+        # default=[sorted(model_list)[0]]
     )
 
     # Model parameters input
@@ -57,22 +79,23 @@ def stpage01_exp_definition_and_execution():
         'Train fractions: enter training fractions (e.g., [0.016, 0.063, 0.251, 1]). (Optional)', '')
 
     # Random seed input
-    random_seed = st.text_input('Random Seed: enter a value or a list of values (e.g. [41,42,23]) (Required)', '')
+    random_seed = st.text_input('Random Seed: enter a value or a list of values (e.g. [41,42,23]) (default: 0)', '0')
 
     # Experiment ID
-    experimentID = st.text_input('Experiment ID: enter the name of the experiment (Required)', '')
+    experimentID = st.text_input('Experiment ID: enter the name of the experiment (Required)', f'demo.{i:02d}')
 
     # Button to run the experiment
     if st.button('Run Experiment'):
         # Check if experiment ID exists in the demo_results folder
-        results_path = '../streamlit/demo_results'
+
         experiment_path = os.path.join(results_path, experimentID)
 
         if os.path.exists(experiment_path):
             st.warning(f"Experiment ID '{experimentID}' already exists. Please choose a different name.")
         else:
             log_area = st.empty()
-            with stdouterr(to=log_area, format='code', max_buffer=5000, buffer_separator='\n'):
+            with stdouterr(to=log_area, format='code', buffer_separator='\n', max_buffer=10000):
+
                 experiment_conf = {
                     'experiment_id': experimentID,
                     'dataset_names': selected_datasets,
@@ -87,14 +110,16 @@ def stpage01_exp_definition_and_execution():
                 experiment_conf = {k: v for k, v in experiment_conf.items() if v}
 
                 try:
-
                     # Execute the experiment
                     launch_experiment_by_config(experiment_conf)
-
                     st.success("Experiment successfully completed!")
+                    st.markdown( # this should scroll the log to bottom but it isn't working...
+                        """<script>document.querySelector('#' + document.querySelector('div[data-baseweb="scrollable-container"]').getAttribute('id')).scrollTop = document.querySelector('  # ' + document.querySelector('div[data-baseweb=scrollable-container]').getAttribute('id')).scrollHeight;</script>""",
+                        unsafe_allow_html=True)
                     # open_folder('Open results folder', results_path) # not working
                 except Exception as e:
                     print(f"Error during experiment execution: {str(e)}")
+
 
 if __name__ == '__main__':
     stpage01_exp_definition_and_execution()
