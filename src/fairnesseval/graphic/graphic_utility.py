@@ -821,11 +821,11 @@ def check_axis_validity(df, x_axis, y_axis):
 
 def plot_demo_subplots(all_df, model_list, chart_name, save, show=False, grouping_col=None, axis_to_plot=None,
                        sharex=True,
-                       sharey='row', result_path_name='all_df', xlog=False,
+                       sharey='row', xlog=False,
                        increasing_marker_size=False,
                        horizontal_subplots_by_col='dataset_name', use_subplots=True,
                        ylim_list=None, annotate_mode='all', annotate_col=None,
-                       custom_add_graphic_object=None, pl_util=None, params={}):
+                       custom_add_graphic_object=None, pl_util=None, params={}, pl_params={}):
     if annotate_col is not None:
         annotate_col += '_mean'
     name_suffix = f' - VARY {grouping_col}' if grouping_col is not None else ''
@@ -836,7 +836,7 @@ def plot_demo_subplots(all_df, model_list, chart_name, save, show=False, groupin
     # mean_error_df = mean_error_df[mean_error_df['model_code']]
     if pl_util is None:
         pl_util = PlotUtility(save=save, show=show, suffix='', annotate_mode=annotate_mode,
-                              custom_add_graphic_object=custom_add_graphic_object)
+                              custom_add_graphic_object=custom_add_graphic_object, **pl_params)
     base_figsize = np.array([4, 3]) * 0.8
     if params.get('figsize', None) is not None:
         base_figsize = params['figsize']
@@ -887,7 +887,7 @@ def plot_demo_subplots(all_df, model_list, chart_name, save, show=False, groupin
                                   title=f'{subplot_value}{name_suffix}')
                 name = '_'.join(
                     [x for x in [chart_name, name_suffix, f'{x_axis}_vs_{y_axis}'] if x != '' and x is not None])
-                pl_util.save_figure(additional_dir_path=result_path_name, name=name)
+                pl_util.save_figure(additional_dir_path='', name=name)
 
     if use_subplots:
         if sharey == 'row':
@@ -901,8 +901,7 @@ def plot_demo_subplots(all_df, model_list, chart_name, save, show=False, groupin
         tmp_dict = [ax.get_legend_handles_labels() for ax in axes_array.flat[::-1]]
         handles, labels = max(tmp_dict, key=lambda x: len(x[1]))
         if len(labels) != len(model_list):
-            logger = LoggerSingleton()
-            logger.warning('Some model are not displayed.')
+            print('Some model are not displayed.')
 
         if pl_util.params.get('legend_hook', None) is not None:
             pl_util.params['legend_hook'](fig, handles, labels)
@@ -940,13 +939,13 @@ def plot_demo_subplots(all_df, model_list, chart_name, save, show=False, groupin
 
         if show:
             fig.show()
-        pl_util.save_figure(additional_dir_path=result_path_name,
+        pl_util.save_figure(additional_dir_path='',
                             name=f'{chart_name}_VARY_{grouping_col}_subplots')
     # replace 'violation' with turn constraint name
 
     pl_util.show = show
 
-    dir_path = pl_util.get_base_path(additional_dir_path=result_path_name)
+    dir_path = pl_util.get_base_path(additional_dir_path='')
 
     mean_error_df = mean_error_df.drop(columns=['x', 'xerr', 'y', 'yerr'])
 
