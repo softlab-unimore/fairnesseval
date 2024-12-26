@@ -275,10 +275,10 @@ class ExperimentRun(metaclass=Singleton):
             assert args.exp_grid_ratio is None, '--exp_grid_ratio must not be set if using --grid_fractions'
         if prm['train_test_seeds'] is None:
             prm['train_test_seeds'] = [None]
-        print('Configuration:')
-        for key, value in prm.items():
-            print(f'{key}: {value}')
-        print('*' * 100)
+        # print('Configuration:')
+        # for key, value in prm.items():
+        #     print(f'{key}: {value}')
+        # print('*' * 100)
 
         # use custom results path when specified
         if prm['results_path'] is not None:
@@ -323,7 +323,6 @@ class ExperimentRun(metaclass=Singleton):
             for train_test_fold, datasets_divided in tqdm(enumerate(
                     utils_prepare_data.split_dataset_generator(self.dataset_str, datasets, train_test_seed,
                                                                prm['split_strategy'], test_size=prm['test_size']))):
-                print('')
                 if train_test_fold not in prm['train_test_fold']:
                     continue
                 random_seed = original_random_seed + train_test_fold
@@ -334,7 +333,7 @@ class ExperimentRun(metaclass=Singleton):
 
                 if (base_model_code_l := self.prm['model_params'].get('base_model_code', None)) is not None:
                     for base_model_code in base_model_code_l:
-                        params_grid = self.prm['model_params'].pop('base_model_grid_params', None)
+                        params_grid = self.prm['model_params'].get('base_model_grid_params', None)
                         self.tuning_step(base_model_code=base_model_code, X=X, y=y,
                                          fractions=self.prm['train_fractions'],
                                          random_seed=0,
@@ -342,12 +341,13 @@ class ExperimentRun(metaclass=Singleton):
                                          params_grid=params_grid
                                          )  # TODO: random_seed=0 to simplify, may be corrected later.
 
-                # check that all values of model_params hasy type list or set or tuple, if not convert to list
-                for key, value in self.prm['model_params'].items():
-                    if not isinstance(value, (list, set, tuple)):
-                        self.prm['model_params'][key] = [value]
-
                 params_to_iterate = params_to_iterate | self.prm['model_params']
+                if 'base_model_grid_params' in params_to_iterate.keys():
+                    params_to_iterate.pop('base_model_grid_params')
+                # check that all values of model_params hasy type list or set or tuple, if not convert to list
+                for key, value in params_to_iterate.items():
+                    if not isinstance(value, (list, set, tuple)):
+                        params_to_iterate[key] = [value]
                 params_keys = params_to_iterate.keys()
                 # add params_keys to id cols if not already there, maintaining the order
                 self.id_cols += [x for x in params_keys if x not in self.id_cols]
@@ -362,7 +362,8 @@ class ExperimentRun(metaclass=Singleton):
                                 f'train_test_fold: {train_test_fold} \n'
                                 + json.dumps(all_params, default=list))
                     a = datetime.now()
-                    turn_model_params = {key: all_params[key] for key in self.prm['model_params'].keys()}
+                    turn_model_params = {key: all_params[key] for key in self.prm['model_params'].keys() if
+                                         key in all_params}
                     self.run_model(datasets_divided=datasets_divided, random_seed=random_seed,
                                    model_params=turn_model_params)
                     b = datetime.now()
@@ -419,11 +420,17 @@ class ExperimentRun(metaclass=Singleton):
                 df = pd.concat([old_df, df])
             path = os.path.abspath(path)
             df.to_csv(path, index=False)
-            print(f'Saving results in: {path}')
+            logger = LoggerSingleton()
+            logger.info(f'Saving results in:\n{path}')
 
     def save_artifacts(self):
+        """
+            Creating folder for artifacts, each combination of parameters will have a folder with the iteration number.
+            The map of the parameters to the iteration number will be saved in `id_values.csv` in the artifacts folder.
+        """
         directory = os.path.join(self.base_result_dir, self.prm['experiment_id'])
         if self.prm.get('save_models', False) or self.prm.get('save_predictions', False):
+
             # determine current id values using keys in id_cols and values of data dict
             artifacts_dir = os.path.join(directory, 'artifacts')
             id_values = {key: self.data_dict[key] for key in self.id_cols if self.data_dict.get(key) is not None}
@@ -822,6 +829,14 @@ class ExperimentRun(metaclass=Singleton):
 
         for phase, dataset_list in dataset_dict.items():
             X, Y, S = dataset_list[:3]
+            class TMP(object):pass
+            input_params = TMP
+            input_params.X = X
+            input_params.y_true = Y
+            input_params.Y = Y
+            input_params.sensitive_features = S
+            input_params.S = S
+            input_params.predict_method = predict_method
 
             params = inspect.signature(predict_method).parameters.keys()
             data = [X]
@@ -836,6 +851,7 @@ class ExperimentRun(metaclass=Singleton):
             a = datetime.now()
             y_pred = t_predict_method(*data)
             b = datetime.now()
+            input_params.y_pred = y_pred
 
             data_values = utils_prepare_data.DataValuesSingleton()
             # Set phase to return the original sensitive attributes with the current index & save the correct predictions
@@ -845,14 +861,21 @@ class ExperimentRun(metaclass=Singleton):
             for name, eval_method in metrics_dict.items():
                 turn_name = f'{phase}_{name}'
                 params = inspect.signature(eval_method).parameters.keys()
-                a = datetime.now()
-                if 'predict_method' in params:
-                    turn_res = eval_method(*dataset_list, predict_method=t_predict_method)
-                elif 'y_pred' in params:
-                    turn_res = eval_method(*dataset_list, y_pred=y_pred)
-                else:
+                kwargs = {}
+                for k, v in input_params.__dict__.items():
+                    if k in params:
+                        kwargs[k] = v
+                if 'predict_method' not in params and 'y_pred' not in params:
                     raise AssertionError(
                         'Metric method is not taking in input y_pred or predict_method. This is not allowed!')
+
+                # if 'predict_method' in params:
+                #     turn_res = eval_method(*dataset_list, predict_method=t_predict_method)
+                # elif 'y_pred' in params:
+                #     turn_res = eval_method(*dataset_list, y_pred=y_pred)
+                # else:
+                a = datetime.now()
+                turn_res = eval_method(**kwargs)
                 b = datetime.now()
                 time_dict.update(metric=turn_name, time=(b - a).total_seconds())
                 time_list.append(deepcopy(time_dict))
@@ -911,8 +934,9 @@ class ExperimentRun(metaclass=Singleton):
 
     def tuning_step(self, base_model_code, X: pd.DataFrame, y: pd.Series, fractions, random_seed=0, redo_tuning=False,
                     params_grid=None):
+        logger = LoggerSingleton()
         if base_model_code is None:
-            print(f'base_model_code is None. Not starting finetuning.')
+            logger.info(f'base_model_code is None. Not starting Grid Search.')
             return
         if params_grid is None:
             params_grid = fe.models.get_model_parameter_grid(base_model_code=base_model_code)
@@ -923,23 +947,26 @@ class ExperimentRun(metaclass=Singleton):
         for turn_frac in (pbar := tqdm(fractions)):
             pbar.set_description(f'fraction: {turn_frac: <5}')
             directory = os.path.join(self.base_result_dir, self.dataset_str, 'tuned_models')
+            if not os.path.exists(directory):
+                directory = os.path.join(self.base_result_dir, 'tuned_models', self.dataset_str)
             os.makedirs(directory, exist_ok=True)
             name = f'grid_search_{base_model_code}_rnd{random_seed}_frac{turn_frac}'
             path = os.path.join(directory, name + '.pkl')
+            # todo handle multiple params_grid by creating multiple files and searching all of them for already existing params
             try:
                 grid_clf = joblib.load(path)
                 tmp = grid_clf.best_params_
                 if grid_clf.param_grid != params_grid:
                     redo_tuning = True
-                    print(f'params_grid is different from the one used in the previous tuning. Redoing tuning...')
+                    logger.info(f'params_grid is different from the one used in the previous tuning. Redoing tuning...')
             except Exception as e:
-                print(f'Error in loading best params: {e}. Re-launching fine tuning...')
+                logger.info(f'Error in loading best params: {e}. Re-launching fine tuning...')
                 # delete file at path
                 if os.path.exists(path):
                     os.remove(path)
 
             if redo_tuning or not os.path.exists(path):
-                print(f'Starting finetuning of {base_model_code}')
+                logger.info(f'Starting Grid Search of {base_model_code}')
                 size = X.shape[0]
                 sample_mask = np.arange(size)
                 if turn_frac != 1:
@@ -952,22 +979,37 @@ class ExperimentRun(metaclass=Singleton):
                 b = datetime.now()
                 joblib.dump(clf, path, compress=1)
 
-                finetuning_time_df = pd.DataFrame(
-                    [{'phase': 'grid_searh_finetuning', 'time': (b - a).total_seconds()}])
-                self.save_result(finetuning_time_df, 'time_' + name, additional_dir='tuned_models')
+                finetuning_time_dict = {'phase': 'grid_searh_finetuning', 'time': (b - a).total_seconds(),
+                                        'model_name': base_model_code,
+                                        'best_params_': clf.best_params_,
+                                        'train_fraction': turn_frac,
+                                        'base_model_code': base_model_code,
+                                        'random_seed': random_seed,
+                                        'dataset': self.dataset_str,
+                                        'param_grid': params_grid,
+                                        }
+                finetuning_time_df = pd.DataFrame([finetuning_time_dict])
+                finetuning_time_df.to_csv(path.replace('.pkl', '.json'), index=False)
+
             else:
-                print(f'Skipping finetuning of {base_model_code}. Already done.')
+                logger.info(f'Skipping Grid Search of {base_model_code}. Already done.')
 
     def load_best_params(self, base_model_code, fraction, random_seed=0):
         directory = os.path.join(self.base_result_dir, self.dataset_str, 'tuned_models')
         fraction = float(fraction)
         # os.makedirs(directory, exist_ok=True)
+        directory = os.path.join(self.base_result_dir, self.dataset_str, 'tuned_models')
+
         try:
             path = os.path.join(directory, f'grid_search_{base_model_code}_rnd{random_seed}_frac{fraction}.pkl')
+            if not os.path.exists(path):
+                directory = os.path.join(self.base_result_dir, 'tuned_models', self.dataset_str)
+                path = os.path.join(directory, f'grid_search_{base_model_code}_rnd{random_seed}_frac{fraction}.pkl')
             grid_clf = joblib.load(path)
             return grid_clf.best_params_
         except Exception as e:
-            print(f'Error in loading best params: {e}')
+            logger = LoggerSingleton()
+            logger.info(f'Error in loading best params: {e}')
             return {}
 
 
