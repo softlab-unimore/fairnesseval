@@ -415,8 +415,14 @@ class ExponentiatedGradientPmf(ExponentiatedGradient):
             X = X.values
         return super(ExponentiatedGradientPmf, self).fit(X, y, sensitive_features=sensitive_features, **kwargs)
 
-    def predict(self, X):
+    def predict_proba(self, X):
+        X = X.values if hasattr(X, 'values') else X
         return self._pmf_predict(X)[:, 1]
+
+    def predict(self, X, threshold=0.5):
+        X = X.values if hasattr(X, 'values') else X
+        return (self._pmf_predict(X)[:, 1] > threshold).astype(int)
+
 
     def get_stats_dict(self):
         res_dict = {}
