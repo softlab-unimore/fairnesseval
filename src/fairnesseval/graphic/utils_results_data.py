@@ -299,6 +299,8 @@ def available_experiment_results(results_path):
 
     # List all directories in the path
     experiments = [name for name in os.listdir(results_path) if os.path.isdir(os.path.join(results_path, name))]
+    # remove folder tuned_models
+    experiments.remove('tuned_models')
 
     return experiments
 

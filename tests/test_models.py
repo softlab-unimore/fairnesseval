@@ -1,6 +1,9 @@
+import itertools
 import shutil
 import unittest
 import os
+
+import joblib
 
 from fairnesseval.experiment_definitions import sigmod_datasets
 from fairnesseval.graphic.utils_results_data import load_results_experiment_id
@@ -88,23 +91,23 @@ class TestModels(unittest.TestCase):
         }
         self.check_results_pre_post(config)
 
-    def test_expgrad(self):
-        config = self.base_config | {
-            'experiment_id': 'expgrad',
-            'dataset_names': sigmod_datasets,
-            'model_names': ['expgrad'],
-            'model_params': {'eps': [0.005, 0.15],
-                             'constraint_code': 'dp',
-                             'base_model_code': 'lr',
-                             'base_model_grid_params': {'C': [0.1, 1]}},
-            'random_seeds': [1],
-            'train_test_fold': [0],
-        }
-        self.check_results_pre_post(config)
-        res_df = load_results_experiment_id(experiment_code_list=[config['experiment_id']],
-                                            results_path=config['results_path'])
-        # eps has unique values that are the same as the values in the config
-        self.assertEqual(res_df['eps'].unique().tolist(), config['model_params']['eps'])
+    # def test_expgrad(self): # extended to test base_model_grid_params
+    #     config = self.base_config | {
+    #         'experiment_id': 'expgrad',
+    #         'dataset_names': sigmod_datasets,
+    #         'model_names': ['expgrad'],
+    #         'model_params': {'eps': [0.005, 0.15],
+    #                          'constraint_code': 'dp',
+    #                          'base_model_code': 'lr',
+    #                          'base_model_grid_params': {'C': [0.1, 1]}},
+    #         'random_seeds': [1],
+    #         'train_test_fold': [0],
+    #     }
+    #     self.check_results_pre_post(config)
+    #     res_df = load_results_experiment_id(experiment_code_list=[config['experiment_id']],
+    #                                         results_path=config['results_path'])
+    #     # eps has unique values that are the same as the values in the config
+    #     self.assertEqual(res_df['eps'].unique().tolist(), config['model_params']['eps'])
 
 
     def check_results_pre_post(self, config):
@@ -115,6 +118,30 @@ class TestModels(unittest.TestCase):
         for dataset in sigmod_datasets:
             self.assertTrue(
                 os.path.exists(os.path.join(res_path, f"{config['experiment_id']}_{dataset}_{base_model}.csv")))
+
+    def test_expgrad_and_base_model_grid_params(self):
+        config = self.base_config | {
+            'experiment_id': 'test_exp_base_model_grid_params',
+            'dataset_names': sigmod_datasets,
+            'model_names': ['expgrad'],
+            'model_params': {'eps': [0.005, 0.15],
+                             'constraint_code': 'dp',
+                             'base_model_code': 'lr',
+                             'base_model_grid_params': {'C': [0.1, 1]}},
+            'random_seeds': [100],
+            'train_test_fold': [0,1,2],
+            'train_fractions': [0.063, 0.251, 1.0],
+        }
+        self.check_results_pre_post(config)
+        base_model_code, random_seed = config['model_params']['base_model_code'], 0 # todo random_seed is not used for grid search.
+        res_path = os.path.join(config['results_path'], )
+        for dataset_str, turn_frac in itertools.product(sigmod_datasets, config['train_fractions']):
+            grid_search_path = os.path.join(config['results_path'], 'tuned_models', dataset_str,
+                                            f'grid_search_{base_model_code}_rnd{random_seed}_frac{turn_frac}.pkl')
+
+            gs = joblib.load(grid_search_path)
+            self.assertEqual(gs.param_grid, config['model_params']['base_model_grid_params'])
+
 
 
 if __name__ == '__main__':

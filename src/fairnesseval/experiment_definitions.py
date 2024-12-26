@@ -1,3 +1,7 @@
+import os
+
+from fairnesseval.utils_general import get_project_root
+
 RANDOM_SEEDs_RESTRICTED_V1 = [1]
 
 TRAIN_FRACTIONS_SMALLER_DATASETS_v1 = [0.063, 0.251, 1.]
@@ -5,7 +9,7 @@ TRAIN_FRACTIONS_v1 = [0.001, 0.004, 0.016, 0.063, 0.251, 1]  # np.geomspace(0.00
 BASE_EPS_V1 = [0.005]
 EPS_LIST_V2: list[float] = [0.001, .005, 0.01, 0.02, 0.05, 0.10, 0.15]
 sigmod_datasets = ['adult_sigmod', 'compas', 'german', ]
-DEMO_RESULTS_PATH = '../../streamlit/demo_results'
+DEMO_RESULTS_PATH = os.path.join(get_project_root(), 'streamlit','demo_results')
 
 experiment_definitions = [
     {'experiment_id': 'testAdversarial',
