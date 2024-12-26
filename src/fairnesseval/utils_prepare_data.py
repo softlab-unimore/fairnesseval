@@ -85,9 +85,9 @@ def adult(display=False):
                 data[k] = data[k].cat.codes
 
     if display:
-        return raw_data.drop(["Education", "Target", "fnlwgt"], axis=1), data["Target"].values
+        return raw_data.drop(["Education", "Target", "fnlwgt"], axis=1), data["Target"]
     else:
-        return data.drop(["Target", "fnlwgt"], axis=1), data["Target"].values
+        return data.drop(["Target", "fnlwgt"], axis=1), data["Target"]
 
 
 def check_download_dataset(dataset_name='compas'):
@@ -105,7 +105,7 @@ def check_download_dataset(dataset_name='compas'):
         base_path = os.path.join(aif360_data_path, 'german')
         base_url = 'https://archive.ics.uci.edu/ml/machine-learning-databases/statlog/german/'
         file_names = ['german.data', 'german.doc']
-    elif 'adult_sigmod' in dataset_name:
+    elif 'adult_sigmod' in dataset_name or 'adult' in dataset_name:
         base_path = os.path.join(aif360_data_path, 'adult', )
         base_url = 'https://archive.ics.uci.edu/ml/machine-learning-databases/adult/'
         file_names = ['adult.data', 'adult.test', 'adult.names']
@@ -155,7 +155,7 @@ def load_convert_dataset_aif360(dataset_name='compas', remove_sensitive_attribut
         dataset_orig.metadata['label_maps'] = [{1: 'Good Credit', 0: 'Bad Credit'}]
         dataset_orig.unfavorable_label = 0
         dataset_orig.labels[dataset_orig.labels == 2] = 0
-    elif 'adult_sigmod' in dataset_name:
+    elif 'adult_sigmod' in dataset_name or 'adult' in dataset_name:
         # ret_dict['protected'] = 'sex'
         # ret_dict['privileged_groups'] = [{'Sex': 1}]
         # ret_dict['unprivileged_groups'] = [{'Sex': 0}]
@@ -300,7 +300,7 @@ def get_dataset(dataset_str, prm=None):
     else:
         prm = {}
         dataset_params = None
-    if dataset_str == "adult":
+    if dataset_str == "adult_v0":
         return load_transform_Adult()
     elif dataset_str in fe.utils_experiment_parameters.sigmod_datasets + fe.utils_experiment_parameters.sigmod_datasets_aif360:
         return load_convert_dataset_aif360(dataset_str)

@@ -3,7 +3,7 @@ import json
 
 import pandas as pd
 
-ADULT_ACS_PUBLIC_COVERAGE_ = ['adult', 'ACSPublicCoverage']
+ADULT_ACS_PUBLIC_COVERAGE_ = ['adult_v0', 'ACSPublicCoverage']
 ACS_SELECTED_DATASETS = ['ACSPublicCoverage', 'ACSEmployment', ]
 
 ACS_dataset_names = [
@@ -17,11 +17,11 @@ ACS_dataset_names = [
     'ACSEmploymentFiltered'  # 2590315
 ]
 
-dataset_names = ['adult'] + ACS_dataset_names
+dataset_names = ['adult_v0'] + ACS_dataset_names
 
-bigger_selected_datasets = ['adult', 'ACSPublicCoverage', 'ACSEmployment']
+bigger_selected_datasets = ['adult_v0', 'ACSPublicCoverage', 'ACSEmployment']
 
-sigmod_datasets = ['adult_sigmod', 'compas', 'german', ]
+sigmod_datasets = ['adult_sigmod', 'compas', 'german', 'adult']
 
 sigmod_datasets_no_SA = [x + '_no_SA' for x in sigmod_datasets]
 
@@ -676,7 +676,7 @@ experiment_configurations = [
      'train_fraction': TRAIN_FRACTIONS_SMALLER_DATASETS_v1,
      },
     {'experiment_id': 'e_m.0',  # todo
-     'dataset_names': ['adult'],
+     'dataset_names': ['adult_v0'],
      'model_names': ['fairlearn_full'],
      'random_seeds': RANDOM_SEEDS_v1,
      'model_params': expgrad_sample_params_medium_v1,
@@ -684,7 +684,7 @@ experiment_configurations = [
      'params': ['--debug'],
      },
     {'experiment_id': 'e_m.1',  # todo
-     'dataset_names': ['adult', ],
+     'dataset_names': ['adult_v0', ],
      'model_names': ['fairlearn_full'],
      'random_seeds': RANDOM_SEEDS_v1,
      'model_params': expgrad_params_restricted_v3,
@@ -823,7 +823,7 @@ experiment_configurations = [
      'constraint_code': 'eo',
      },
     {'experiment_id': 'acs_eps_EO_2.1.test',  # done
-     'dataset_names': ['adult'],
+     'dataset_names': ['adult_v0'],
      'model_names': ['hybrids'],
      'eps': EPS_LIST_V1,
      'expgrad_fractions': [0.251],
