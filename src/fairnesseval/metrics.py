@@ -128,7 +128,7 @@ default_metrics_dict_v1 = {'error': getError,
                            'precision': get_metric_function(precision_score),
                            'recall': get_metric_function(recall_score),
 
-                           # todo add individual discrimination and tprb.
+                           # todo add individual discrimination
                            'demographic_parity_difference': partial(demographic_parity_difference, method='to_overall'),
                            'demographic_parity_ratio': partial(demographic_parity_ratio, method='to_overall'),
                            'equalized_odds_difference': partial(equalized_odds_difference, method='to_overall'),

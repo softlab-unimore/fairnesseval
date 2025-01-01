@@ -75,8 +75,8 @@ methods_name_dict = {
     'fairlearn_full': wrappers.ExponentiatedGradientPmf,
     'fairlearn': wrappers.ExponentiatedGradientPmf,
     'expgrad': wrappers.ExponentiatedGradientPmf,
-    'Kearns': wrappers.Kearns,  # todo test
-    'Pleiss': wrappers.PleissWrapper, # todo test
+    'Kearns': wrappers.Kearns,
+    'Pleiss': wrappers.PleissWrapper,
     'Calmon': wrappers.CalmonWrapper,
     'Feld': wrappers.FeldWrapper,
     'ZafarDI': wrappers.ZafarDI,

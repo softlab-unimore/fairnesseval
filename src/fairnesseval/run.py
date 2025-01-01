@@ -215,7 +215,7 @@ class ExperimentRun(metaclass=Singleton):
 
         available_metric_names = metrics_code_map.keys()
         arg_parser.add_argument("--metrics", choices=available_metric_names,
-                                default='default',
+                                default='default_v1',
                                 help=f'metric set to be used for evaluation. Available metric set name are {available_metric_names}.'
                                      f'The use custom metrics add a new key to metrics_code_map in fairnesseval.metrics.py.')
 
@@ -822,13 +822,22 @@ class ExperimentRun(metaclass=Singleton):
             self.turn_results.append(turn_dict)
 
     @staticmethod
-    def get_metrics(dataset_dict: dict, predict_method, metrics_dict, return_times=False):
+    def get_metrics(dataset_dict: dict, model, metrics_dict, return_times=False):
         metrics_res = {}
         time_list = []
         time_dict = {}
-
+        predict_method = model.predict
         for phase, dataset_list in dataset_dict.items():
             X, Y, S = dataset_list[:3]
+            data = [X]
+            params = inspect.signature(predict_method).parameters.keys()
+            if 'sensitive_features' in params:
+                # data += [S]
+                t_predict_method = partial(predict_method, sensitive_features=S)
+            else:
+                t_predict_method = predict_method
+
+            data_values = utils_prepare_data.DataValuesSingleton()
             class TMP(object):pass
             input_params = TMP
             input_params.X = X
@@ -836,15 +845,10 @@ class ExperimentRun(metaclass=Singleton):
             input_params.Y = Y
             input_params.sensitive_features = S
             input_params.S = S
-            input_params.predict_method = predict_method
+            input_params.predict_method = t_predict_method
+            for k,v in data_values.metadata.items():
+                setattr(input_params, k, v)
 
-            params = inspect.signature(predict_method).parameters.keys()
-            data = [X]
-            if 'sensitive_features' in params:
-                # data += [S]
-                t_predict_method = partial(predict_method, sensitive_features=S)
-            else:
-                t_predict_method = predict_method
 
             if len(dataset_list) > 3:
                 data += dataset_list[3:]
@@ -853,14 +857,21 @@ class ExperimentRun(metaclass=Singleton):
             b = datetime.now()
             input_params.y_pred = y_pred
 
-            data_values = utils_prepare_data.DataValuesSingleton()
+            # if has attr predict_proba
+            if hasattr(model, 'predict_proba'):
+                y_pred_proba = model.predict_proba(X)
+            else:
+                y_pred_proba = y_pred
+
             # Set phase to return the original sensitive attributes with the current index & save the correct predictions
-            data_values.set_phase_and_predictions(y_pred, phase=phase)
+            data_values.set_phase_and_predictions(y_pred_proba, phase=phase)
             time_dict.update(metric=f'{phase}_prediction', time=(b - a).total_seconds())
             time_list.append(deepcopy(time_dict))
             for name, eval_method in metrics_dict.items():
                 turn_name = f'{phase}_{name}'
                 params = inspect.signature(eval_method).parameters.keys()
+                if hasattr(eval_method, 'func') and hasattr(eval_method.func, '_metric_fn'): # add params from inner metric function
+                    params = params | inspect.signature(eval_method.func._metric_fn).parameters.keys()
                 kwargs = {}
                 for k, v in input_params.__dict__.items():
                     if k in params:
@@ -880,6 +891,8 @@ class ExperimentRun(metaclass=Singleton):
                 time_dict.update(metric=turn_name, time=(b - a).total_seconds())
                 time_list.append(deepcopy(time_dict))
                 metrics_res[turn_name] = turn_res
+
+                # pd.DataFrame(y_pred).groupby(S).mean() # debug script to check the predictions
         if return_times:
             return metrics_res, time_list
         return metrics_res
@@ -909,7 +922,7 @@ class ExperimentRun(metaclass=Singleton):
         exp_run = ExperimentRun()
 
         a = datetime.now()
-        metrics_res, metrics_time = ExperimentRun.get_metrics(evaluate_dataset_dict, model.predict,
+        metrics_res, metrics_time = ExperimentRun.get_metrics(evaluate_dataset_dict, model=model,
                                                               metrics_dict=exp_run.metrics_dict,
                                                               return_times=True)
         b = datetime.now()
@@ -995,7 +1008,6 @@ class ExperimentRun(metaclass=Singleton):
                 logger.info(f'Skipping Grid Search of {base_model_code}. Already done.')
 
     def load_best_params(self, base_model_code, fraction, random_seed=0):
-        directory = os.path.join(self.base_result_dir, self.dataset_str, 'tuned_models')
         fraction = float(fraction)
         # os.makedirs(directory, exist_ok=True)
         directory = os.path.join(self.base_result_dir, self.dataset_str, 'tuned_models')
