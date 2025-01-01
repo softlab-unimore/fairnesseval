@@ -1,6 +1,10 @@
 import inspect
+from functools import partial
 
 import numpy as np
+from fairlearn.metrics import demographic_parity_difference, demographic_parity_ratio, equalized_odds_difference, \
+    equalized_odds_ratio, make_derived_metric, true_positive_rate, true_negative_rate, false_positive_rate, \
+    false_negative_rate
 
 from fairnesseval import utils_prepare_data
 from fairlearn.reductions import DemographicParity, ErrorRate, EqualizedOdds
@@ -104,11 +108,49 @@ default_metrics_dict = {'error': getError,
                         'TNRB': TNRB,
                         'f1': get_metric_function(f1_score),
                         'precision': get_metric_function(precision_score),
-                        'recall': get_metric_function(recall_score)
+                        'recall': get_metric_function(recall_score),
                         }
+
+tpr_diff = make_derived_metric(metric=true_positive_rate, transform="difference")
+tnr_diff = make_derived_metric(metric=true_negative_rate, transform="difference")
+fpr_diff = make_derived_metric(metric=false_positive_rate, transform="difference")
+fnr_diff = make_derived_metric(metric=false_negative_rate, transform="difference")
+# tpr_diff(Y,  y_pred, sensitive_features=S ,method="between_groups")
+# TPRB(X, Y, S, y_pred)
+
+default_metrics_dict_v1 = {'error': getError,
+                           'violation': getViolation,
+                           'EqualizedOdds': getEO,
+                           # 'di': di,
+                           # 'TPRB': TPRB,
+                           # 'TNRB': TNRB,
+                           'f1': get_metric_function(f1_score),
+                           'precision': get_metric_function(precision_score),
+                           'recall': get_metric_function(recall_score),
+
+                           # todo add individual discrimination and tprb.
+                           'demographic_parity_difference': partial(demographic_parity_difference, method='to_overall'),
+                           'demographic_parity_ratio': partial(demographic_parity_ratio, method='to_overall'),
+                           'equalized_odds_difference': partial(equalized_odds_difference, method='to_overall'),
+                           'equalized_odds_ratio': partial(equalized_odds_ratio, method='to_overall'),
+                           'dp_diff_bg': partial(demographic_parity_difference, method='between_groups'),
+                           'dp_ratio_bg': partial(demographic_parity_ratio, method='between_groups'),
+                           'eo_diff_bg': partial(equalized_odds_difference, method='between_groups'),
+                           'eo_ratio_bg': partial(equalized_odds_ratio, method='between_groups'),
+                           'tprb': partial(tpr_diff, method="to_overall"),
+                           'tnrb': partial(tnr_diff, method="to_overall"),
+                           'tprb_bg': partial(tpr_diff, method="between_groups"),
+                           'tnrb_bg': partial(tnr_diff, method="between_groups"),
+                           'fpr_diff': partial(fpr_diff, method="to_overall"),
+                           'fnr_diff': partial(fnr_diff, method="to_overall"),
+                           'fpr_diff_bg': partial(fpr_diff, method="between_groups"),
+                           'fnr_diff_bg': partial(fnr_diff, method="between_groups"),
+
+                           }
 
 metrics_code_map = {
     'default': default_metrics_dict,
+    'default_v1': default_metrics_dict_v1,
     'conversion_to_binary_sensitive_attribute': default_metrics_dict | {
         'violation_orig': convert_metric_to_use_original_sensitive(getViolation),
         'EqualizedOdds_orig': convert_metric_to_use_original_sensitive(getEO),

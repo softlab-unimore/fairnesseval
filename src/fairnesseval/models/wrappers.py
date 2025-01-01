@@ -8,7 +8,7 @@ import sklearn
 from sklearn.preprocessing import StandardScaler
 
 from aif360.algorithms.inprocessing import GerryFairClassifier, AdversarialDebiasing
-from aif360.algorithms.postprocessing import EqOddsPostprocessing
+from aif360.algorithms.postprocessing import EqOddsPostprocessing, CalibratedEqOddsPostprocessing
 from aif360.algorithms.preprocessing import DisparateImpactRemover
 from aif360.algorithms.preprocessing.optim_preproc_helpers.distortion_functions \
     import get_distortion_adult, get_distortion_german, get_distortion_compas
@@ -312,11 +312,48 @@ class ZafarEO:
         return y_pred
 
 
-class Kearns(GeneralAifModel):
-    # todo to complete. Not working
-    def __init__(self, method_str, base_model, datasets, eps=None, constraint_code=None, random_state=None):
+class PleissWrapper(GeneralAifModel):
+    def __init__(self, method_str, base_model, datasets, random_state=None):
         super().__init__(datasets)
-        X, y, A = datasets
+        self.postprocessor = CalibratedEqOddsPostprocessing(
+            privileged_groups=[
+                {self.aif_dataset.protected_attribute_names[0]: self.aif_dataset.privileged_protected_attributes[0]}],
+            unprivileged_groups=[
+                {self.aif_dataset.protected_attribute_names[0]: self.aif_dataset.unprivileged_protected_attributes[0]}],
+            seed=random_state)
+        self.base_model = base_model
+        self.method_str = method_str
+
+    def fit(self, X, y, sensitive_features):
+        # aif_dataset = replace_values_aif360_dataset(X, y, sensitive_features, self.aif_dataset)
+        aif_dataset = BinaryLabelDataset(df=pd.concat([X, sensitive_features, y], axis=1), label_names=[y.name],
+                                         protected_attribute_names=[sensitive_features.name])
+        aif_dataset.features = np.array(aif_dataset.features)
+
+        self.base_model.fit(X, y)
+        y_pred = self.base_model.predict(X).reshape(-1, 1)
+        aif_dataset_pred = aif_dataset.copy()
+        aif_dataset_pred.labels = y_pred
+        self.postprocessor.fit(dataset_true=aif_dataset, dataset_pred=aif_dataset_pred)
+
+    def predict(self, X, sensitive_features):
+        y_pred = self.base_model.predict(X)
+
+        df = pd.concat([X, sensitive_features], axis=1)
+        df['label'] = y_pred
+
+        aif_dataset = BinaryLabelDataset(df=df, label_names=['label'],
+                                         protected_attribute_names=[sensitive_features.name])
+        aif_dataset.features = np.array(aif_dataset.features)
+
+        aif_corrected = self.postprocessor.predict(aif_dataset)
+        return aif_corrected.labels
+
+
+class Kearns(GeneralAifModel):
+    def __init__(self, method_str, base_model, datasets, random_state=None):
+        super().__init__(datasets)
+        X, y, A = datasets[:3]
         self.base_model = base_model
         self.init_kearns()
         self.method_str = method_str
@@ -341,21 +378,26 @@ class Kearns(GeneralAifModel):
             self.predict_params['threshold'] = 0.9898
         elif key == ut_exp.sigmod_dataset_map['german']:
             self.predict_params['threshold'] = 0.98
-        else:
-            raise ValueError(f'{key} not found in available dataset configurations')
-        base_conf['predictor'] = self.base_model
+
         self.conf = base_conf
         self.kearns = GerryFairClassifier(**self.conf)
 
     def fit(self, X, y, sensitive_features):
-        aif_dataset = replace_values_aif360_dataset(X, y, sensitive_features, self.aif_dataset)
+        aif_dataset = BinaryLabelDataset(df=pd.concat([X, sensitive_features, y], axis=1), label_names=[y.name],
+                                         protected_attribute_names=[sensitive_features.name])
+        aif_dataset.features = np.array(aif_dataset.features)
         self.kearns.fit(aif_dataset, **self.fit_params)
-        # self.base_model.fit(X,y)
         return self
 
-    def predict(self, dataset, threshold=None):
-        # return super().predict(dataset, **self.predict_params).labels
-        pass
+    def predict(self, X, sensitive_features):
+        df = pd.concat([X, sensitive_features], axis=1)
+        df['label'] = 0
+        aif_dataset = BinaryLabelDataset(df=df, label_names=['label'],
+                                         protected_attribute_names=[sensitive_features.name])
+        aif_dataset.features = np.array(aif_dataset.features)
+
+        df_transformed = self.kearns.predict(aif_dataset)
+        return df_transformed.labels
 
 
 class ThresholdOptimizerWrapper(ThresholdOptimizer):
@@ -374,7 +416,7 @@ class ThresholdOptimizerWrapper(ThresholdOptimizer):
         if 'constraint_code' in kwargs:
             cc = kwargs.pop('constraint_code')
             kwargs['constraints'] = constraint_code_to_name.get(cc, cc)
-        super().__init__( **kwargs)
+        super().__init__(**kwargs)
         self.random_state = random_state
 
     def fit(self, X, y, sensitive_features):
@@ -422,7 +464,6 @@ class ExponentiatedGradientPmf(ExponentiatedGradient):
     def predict(self, X, threshold=0.5):
         X = X.values if hasattr(X, 'values') else X
         return (self._pmf_predict(X)[:, 1] > threshold).astype(int)
-
 
     def get_stats_dict(self):
         res_dict = {}
@@ -484,3 +525,7 @@ class AdversarialDebiasingWrapper(GeneralAifModel):
         if self.sess is not None:
             self.sess.close()
             print("TensorFlow session closed.")
+
+def only_unmitigated(method_str, base_model, datasets, random_state=None):
+    base_model.set_params(random_state=random_state)
+    return base_model

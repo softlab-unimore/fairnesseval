@@ -184,28 +184,34 @@ class StyleUtility:
         'RLP=F max_iter=10': {'color': 'tab:gray', 'marker': '^', 'linestyle': '-.', 's': rlp_false_markersize},
         'RLP=F max_iter=20': {'color': 'tab:orange', 'marker': '<', 'linestyle': '-.', 's': rlp_false_markersize},
         'RLP=F max_iter=50': {'color': 'tab:pink', 'marker': '>', 'linestyle': '-.', 's': rlp_false_markersize * 1.5},
+        'EXPGRAD': {'color': 'tab:pink', 'marker': '>', 'linestyle': '-.', 's': rlp_false_markersize * 1.5},
         'RLP=F max_iter=100': {'color': 'tab:cyan', 'marker': 'd', 'linestyle': '-.', 's': rlp_false_markersize},
 
-        'ThresholdOptimizer': {'color': 'tab:green', 'marker': '*', 'linestyle': '-.', 's': markersize * 1.25},
+        'ThresholdOptimizer': {'color': 'tab:green', 'marker': '*', 'linestyle': '-.', 's': markersize * 1.25,
+                               'zorder': 3},
         'ThresholdOptimizer binary': {'color': 'tab:green', 'marker': '*', 'linestyle': '-.'},
         'ThresholdOptimizer_orig': {'color': 'tab:green', 'marker': '*', 'linestyle': '-.', 'fillstyle': 'none'},
 
         'Calmon': {'color': 'tab:red', 'marker': '^', 'linestyle': '--'},
-        'ZafarDI': {'color': 'tab:purple', 'marker': 's', 'linestyle': (0, (1, 1)), 'linewidth': linewidth},
+        'ZafarDI': {'color': 'tab:purple', 'marker': 's', 'linestyle': (0, (1, 1)), 'linewidth': linewidth,
+                    'zorder': 3},
         'ZafarDI binary': {'color': 'tab:purple', 'marker': 's', 'linestyle': (0, (1, 1)),
-                           'linewidth': linewidth},
+                           'linewidth': linewidth, 'zorder': 3},
         'ZafarDI_orig': {'color': 'tab:purple', 'marker': MarkerStyle('s', fillstyle='none'), 'linestyle': (0, (1, 1)),
-                         'linewidth': linewidth, },
-        'ZafarEO': {'color': 'tab:purple', 'marker': 's', 'linestyle': (0, (1, 1)), 'linewidth': linewidth},
+                         'linewidth': linewidth, 'zorder': 3},
+        'ZafarEO': {'color': 'tab:purple', 'marker': 's', 'linestyle': (0, (1, 1)), 'linewidth': linewidth,
+                    'zorder': 3},
         'ZafarEO binary': {'color': 'tab:purple', 'marker': 's', 'linestyle': (0, (1, 1)),
-                           'linewidth': linewidth},
-        'Feld': {'color': 'tab:orange', 'marker': 'D', 'linestyle': (5, (10, 3)), 'alpha': 0.75, 's': markersize ** .7},
+                           'linewidth': linewidth, 'zorder': 3},
+        'Feld': {'color': 'tab:orange', 'marker': 'D', 'linestyle': (5, (10, 3)), 'alpha': 0.75, 's': markersize ** .9},
         'Feld binary': {'color': 'tab:orange', 'marker': 'D', 'linestyle': (5, (10, 3))},
         'Feld_orig': {'color': 'tab:orange', 'marker': MarkerStyle('D', fillstyle='none'), 'linestyle': (5, (10, 3))},
+        'Kearns': {'color': 'tab:gray', 'marker': '1', 'linestyle': (5, (10, 3)), 'zorder': 4, 's': markersize ** 1.1},
+        'Pleiss': {'color': 'tab:olive', 'marker': 'x', 'linestyle': (5, (10, 3)), 'zorder': 3},
         'default': {'color': 'tab:red', 'marker': 's', 'linestyle': '--'},
 
     }
-    graphic_style_map['expgrad'] = graphic_style_map['fairlearn']
+    # graphic_style_map['expgrad'] = graphic_style_map['fairlearn']
     graphic_style_map = {replace_words(key): dict(base_config, label=replace_words(key), **value) for key, value in
                          graphic_style_map.items()}
 

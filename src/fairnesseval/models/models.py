@@ -13,6 +13,8 @@ additional_models_dict = {
     'most_frequent': partial(sklearn.dummy.DummyClassifier, strategy="most_frequent"),
     'LogisticRegression': sklearn.linear_model.LogisticRegression,
     'adversarial_debiasing': AdversarialDebiasingWrapper,
+    'GridSearchCV': GridSearchCV,
+
 }
 
 
@@ -49,6 +51,7 @@ def get_base_model(base_model_code, random_seed=0):
     if base_model_code == 'lr':
         # Unmitigated LogRes
         model = LogisticRegression(solver='liblinear', fit_intercept=True, random_state=random_seed)
+        model.set_params()
     elif base_model_code == 'gbm':
         model = GradientBoostingClassifier(random_state=random_seed)
     elif base_model_code == 'lgbm':
@@ -72,13 +75,15 @@ methods_name_dict = {
     'fairlearn_full': wrappers.ExponentiatedGradientPmf,
     'fairlearn': wrappers.ExponentiatedGradientPmf,
     'expgrad': wrappers.ExponentiatedGradientPmf,
-    # 'Kearns': wrappers.Kearns, # not working
+    'Kearns': wrappers.Kearns,  # todo test
+    'Pleiss': wrappers.PleissWrapper, # todo test
     'Calmon': wrappers.CalmonWrapper,
     'Feld': wrappers.FeldWrapper,
     'ZafarDI': wrappers.ZafarDI,
     'ZafarEO': wrappers.ZafarEO,
     # 'Hardt': wrappers.Hardt,
     'ThresholdOptimizer': wrappers.ThresholdOptimizerWrapper,
+    'unmitigated': wrappers.only_unmitigated,
 }
 
 class PersonalizedWrapper:
@@ -140,3 +145,4 @@ def get_model(method_str, random_state=42, **kwargs):
         except Exception as e:
             raise e
     return model
+
