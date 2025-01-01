@@ -1,5 +1,7 @@
 from fairnesseval import run
+import tensorflow as tf
 
+tf.compat.v1.disable_eager_execution()
 done_conf = [
     # done on fairlearn-2
     'sigmod_h_exp_1.0',
@@ -126,7 +128,43 @@ done_conf = [
     'exp_h_eps_PUB.1r',
 ]
 
+new_exp_done = ['s_c_1.0N',  # done
+                's_zDI_1.1N',  # done
+                's_zEO_1.1N',  # small
+                's_zDI_1.2N',  # BIG
+                's_e_1.0N',
+                's_tr_1.0N',  # small
+                's_tr_2.0N',  # medium/BIG
+                's_f_1.0N',  # small
+                's_f_1.1N',  # BIG
+                's_u_1.0N',  # unmitigated
+                's_KearnsPleiss_1.0N',  # small
+                's_k_1.1N',
+                'rlp_F_1.0N',  # small
+                'a_e_1.0N',
+                's_e_1.0N',
+                ]
+
 if __name__ == "__main__":
+
+    conf_todo = [
+        # pending
+
+        'rlp_F_1.12N',
+
+        's_zDI_1.2N',  # BIG # todo repeat
+        # debugging
+
+        # ###
+        # # running now
+        # #AB2
+        # #AB3
+        # 'a_e_1.1N',
+        # #AB4
+        # 'rlp_F_1.1N',  # big
+
+    ]
+
     # run.launch_experiment_by_config({"experiment_id": "q12",
     # "dataset_names": [
     # "ACSIncome",
@@ -137,33 +175,25 @@ if __name__ == "__main__":
     # "results_path": "demo_results",
     # "params": ["--debug"]})
 
-    # run.launch_experiment_by_config({"experiment_id": "lr0",
-    #                                  "dataset_names": ["synth_1e5_dataset.csv"],
-    #                                  "model_names": ["LogisticRegression"],
-    #                                  "results_path": "../../streamlit/demo_results",
-    #                                  "params": ["--debug"]})
-    conf_todo = [
-        # 'demo.0',
-        # 'demo.0.1',
-        # 'demo.1',
-        'demo.D.1r',
-        # 'demo.D.0r', # done
-        # 'demo.A.2r',  # done
-        # 'demo.A.1r', # done
-        # 'demo.2',
-        # 'demo.2t',
-        # 'demo.2r',
-        # 'demo.2.1r',
-        # 'demo.C.0r',
-        # 'demo.D.0r',
-        # 'demo.C.1r',
-        # "demo.2.test",
-        # 'demo.1.test',
-        # 'demo.0.test',
-        # "demo.x.test",
+    # run.launch_experiment_by_config(
+    #     {"experiment_id": "demo.00",
+    # "dataset_names": ["adult"],
+    # "model_names": ["expgrad"],
+    # "model_params": {"base_model_code": "lr", 'eps': [0.005],
+    # "base_model_grid_params": {"C": [0.1, 1]}},
+    # "results_path": "c:\\users\\andrea\\gdrive\\drive condivisi\\softlab\\projects\\fairness\\scalable-expgrad\\streamlit\\demo_results",
+    # "params": ["--debug"]}
 
-
-    ]
-
+    # {"experiment_id": "demo.A.1rs",
+    # "dataset_names": ["adult"],
+    # "model_names": ["Feld",
+    # "ThresholdOptimizer",
+    # "ZafarDI"],
+    # "model_params": {"base_model_code": ["lr"],
+    # "constraint_code": "dp",
+    # "base_model_grid_params": {"C": [0.1, 1]}},
+    # "results_path": "c:\\users\\andrea\\gdrive\\drive condivisi\\softlab\\projects\\fairness\\scalable-expgrad\\streamlit\\demo_results",
+    # "params": ["--debug"]}
+    # )
     for x in conf_todo:
         run.launch_experiment_by_id(x)

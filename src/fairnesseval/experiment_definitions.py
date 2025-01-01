@@ -1,17 +1,155 @@
 import os
 
+from fairnesseval.utils_experiment_parameters import RANDOM_SEEDS_v1, ACS_SELECTED_DATASETS, EPS_LIST_V1, EPS_LIST_V2, \
+    BASE_EPS_V1, ETA_PARAMS_V1, ETA_PARAMS_RESTRICTED_V3
 from fairnesseval.utils_general import get_project_root
 
-RANDOM_SEEDs_RESTRICTED_V1 = [1]
+RANDOM_SEEDS_RESTRICTED_V1 = [1]
+RANDOM_SEEDS_RESTRICTED_V2 = [0]
 
 TRAIN_FRACTIONS_SMALLER_DATASETS_v1 = [0.063, 0.251, 1.]
 TRAIN_FRACTIONS_v1 = [0.001, 0.004, 0.016, 0.063, 0.251, 1]  # np.geomspace(0.001,1,7) np.linspace(0.001,1,7)
-BASE_EPS_V1 = [0.005]
-EPS_LIST_V2: list[float] = [0.001, .005, 0.01, 0.02, 0.05, 0.10, 0.15]
+
 sigmod_datasets = ['adult_sigmod', 'compas', 'german', ]
-DEMO_RESULTS_PATH = os.path.join(get_project_root(), 'streamlit','demo_results')
+DEMO_RESULTS_PATH = os.path.join(get_project_root(), 'streamlit', 'demo_results')
+
+base_conf_v0 = {
+    'random_seeds': RANDOM_SEEDS_v1, }
 
 experiment_definitions = [
+    base_conf_v0 | {'experiment_id': 's_c_1.0N',
+                    'dataset_names': sigmod_datasets,
+                    'model_names': ['Calmon'],
+                    'base_model_code': ['lr', 'lgbm'],
+                    },
+    base_conf_v0 | {'experiment_id': 's_zDI_1.1N',
+                    'dataset_names': sigmod_datasets,
+                    'model_names': ['ZafarDI'],
+                    'base_model_code': ['lr'],
+                    },
+    base_conf_v0 | {'experiment_id': 's_zDI_1.2N',
+                    'dataset_names': ACS_SELECTED_DATASETS,
+                    'model_names': ['ZafarDI'],
+                    'base_model_code': ['lr'],
+                    },
+    base_conf_v0 | {'experiment_id': 's_zEO_1.1N',
+                    'dataset_names': sigmod_datasets,
+                    'model_names': ['ZafarEO'],
+                    'base_model_code': ['lr'],
+                    },
+    base_conf_v0 | {'experiment_id': 's_f_1.0N',
+                    'dataset_names': sigmod_datasets,
+                    'model_names': ['Feld'],
+                    'base_model_code': ['lr', 'lgbm'],
+                    },
+    base_conf_v0 | {'experiment_id': 's_f_1.1N',
+                    'dataset_names': ACS_SELECTED_DATASETS,
+                    'model_names': ['Feld'],
+                    'base_model_code': ['lr', 'lgbm'],
+                    },
+    base_conf_v0 | {'experiment_id': 's_f_1.1DELETE',
+                    'dataset_names': ACS_SELECTED_DATASETS,
+                    'model_names': ['Feld'],
+                    'base_model_code': ['lr', 'lgbm'],
+                    'train_fractions': [0.251],
+                    'states': ['LA'],
+                    'random_seeds': [1],
+                    'train_test_fold': [0],
+                    },
+    base_conf_v0 | {'experiment_id': 's_tr_1.0N',
+                    'dataset_names': sigmod_datasets,
+                    'model_names': ['ThresholdOptimizer'],
+                    'base_model_code': ['lr', 'lgbm'],
+                    'constraint_code': ['dp', 'eo'],
+                    },
+    base_conf_v0 | {'experiment_id': 's_tr_2.0N',
+                    'dataset_names': ACS_SELECTED_DATASETS,
+                    'model_names': ['ThresholdOptimizer'],
+                    'base_model_code': ['lr', 'lgbm'],
+                    'constraint_code': ['dp', 'eo'],
+                    },
+
+    base_conf_v0 | {'experiment_id': 's_KearnsPleiss_1.0N',
+                    'dataset_names': sigmod_datasets,
+                    'model_names': ['Pleiss', 'Kearns'],
+                    'base_model_code': ['lr', 'lgbm'],
+                    },
+    base_conf_v0 | {'experiment_id': 's_k_1.1N',
+                    'dataset_names': ACS_SELECTED_DATASETS,
+                    'model_names': ['Kearns'],
+                    'base_model_code': ['lr', 'lgbm'],
+                    },
+    base_conf_v0 | {'experiment_id': 's_k_1.1DELETE',
+                    'dataset_names': ACS_SELECTED_DATASETS,
+                    'model_names': [
+                        # 'Pleiss',
+                        'Kearns'],
+                    'base_model_code': ['lr', 'lgbm'],
+                    'train_fractions': [0.251],
+                    'states': ['LA'],
+                    'random_seeds': [1],
+                    'train_test_fold': [0],
+                    },
+
+    base_conf_v0 | {'experiment_id': 's_u_1.0N',
+                    'dataset_names': sigmod_datasets + ACS_SELECTED_DATASETS,
+                    'model_names': ['unmitigated'],
+                    'base_model_code': ['lr', 'lgbm'],
+                    },
+    base_conf_v0 | {'experiment_id': 's_e_1.0N',
+                    'dataset_names': sigmod_datasets,
+                    'model_names': ['expgrad'],
+                    'eps': EPS_LIST_V2,
+                    'model_params': {'subsample': [1]},
+                    'base_model_code': ['lr', 'lgbm'],
+                    'constraint_code': ['dp', 'eo'],
+                    },
+
+    base_conf_v0 | {'experiment_id': 'a_e_1.0N',
+                    'dataset_names': ACS_SELECTED_DATASETS,
+                    'model_names': ['expgrad'],
+                    'eps': BASE_EPS_V1,
+                    'model_params': {'subsample': [0.251]},
+                    'base_model_code': ['lr', 'lgbm'],
+                    'constraint_code': ['dp', 'eo'],
+                    },
+    base_conf_v0 | {'experiment_id': 'a_e_1.1N',
+                    'dataset_names': ACS_SELECTED_DATASETS,
+                    'model_names': ['expgrad'],
+                    'eps': EPS_LIST_V2, # <--- BIG
+                    'model_params': {'subsample': [0.251]},
+                    'base_model_code': ['lr', 'lgbm'],
+                    'constraint_code': ['dp', 'eo'],
+                    },
+
+    base_conf_v0 | {'experiment_id': 'rlp_F_1.0N',
+                    'dataset_names': sigmod_datasets,
+                    'model_names': ['fairlearn_full'],
+                    'eps': BASE_EPS_V1,
+                    'base_model_code': ['lr', 'lgbm'],
+                    'random_seeds': RANDOM_SEEDS_v1,
+                    'constraint_code': ['dp', 'eo'],
+                    'model_params': ETA_PARAMS_V1,
+                    },
+    base_conf_v0 | {'experiment_id': 'rlp_F_1.1N',
+                    'dataset_names': ACS_SELECTED_DATASETS,
+                    'model_names': ['fairlearn_full'],
+                    'base_model_code': ['lr', 'lgbm'],
+                    'random_seeds': RANDOM_SEEDS_RESTRICTED_V1,
+                    'model_params': ETA_PARAMS_RESTRICTED_V3 | dict(
+                        constraint_code=['dp', 'eo'],
+                        eps=BASE_EPS_V1),
+                    },
+    base_conf_v0 | {'experiment_id': 'rlp_F_1.12N',
+                    'dataset_names': ACS_SELECTED_DATASETS,
+                    'model_names': ['fairlearn_full'],
+                    'base_model_code': ['lr', 'lgbm'],
+                    'random_seeds': RANDOM_SEEDS_RESTRICTED_V2,
+                    'model_params': ETA_PARAMS_RESTRICTED_V3 | dict(
+                        constraint_code=['dp', 'eo'],
+                        eps=BASE_EPS_V1),
+                    },
+
     {'experiment_id': 'testAdversarial',
      'dataset_names': ['adult_sigmod'],
      'model_names': ['adversarial_debiasing'],
@@ -50,14 +188,14 @@ experiment_definitions = [
         'experiment_id': 'demo.0.test',
         'dataset_names': ('adult_sigmod',),
         'model_names': ('LogisticRegression',),
-        'random_seeds': RANDOM_SEEDs_RESTRICTED_V1,
+        'random_seeds': RANDOM_SEEDS_RESTRICTED_V1,
         'results_path': DEMO_RESULTS_PATH
     },
     {
         "experiment_id": "demo.2.test",
         "dataset_names": ["compas", "german"],
         "model_names": ["LogisticRegression"],
-        "random_seeds": RANDOM_SEEDs_RESTRICTED_V1,
+        "random_seeds": RANDOM_SEEDS_RESTRICTED_V1,
         "train_fractions": TRAIN_FRACTIONS_SMALLER_DATASETS_v1,
         "results_path": DEMO_RESULTS_PATH,
         "params": ["--debug"],
@@ -91,7 +229,7 @@ experiment_definitions = [
         "experiment_id": "demo.x.test",
         'dataset_names': ['adult_sigmod'],
         'model_names': ['LogisticRegression'],
-        'random_seeds': RANDOM_SEEDs_RESTRICTED_V1,
+        'random_seeds': RANDOM_SEEDS_RESTRICTED_V1,
         'results_path': DEMO_RESULTS_PATH,
     },
     {'experiment_id': 'demo.0',
