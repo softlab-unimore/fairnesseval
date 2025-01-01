@@ -129,7 +129,7 @@ def convert_from_aif360_to_df(dataset, dataset_name=None):
     A = pd.Series(dataset.protected_attributes.astype(int).ravel(), name=dataset.protected_attribute_names[0])
     # X is feature names minus the sensitive attribute
     X = pd.DataFrame(dataset.features, columns=dataset.feature_names)
-    X = X.drop(dataset.protected_attribute_names, axis=1) # TODO include the sensitive attribute for reproducibility
+    X = X.drop(dataset.protected_attribute_names, axis=1)  # TODO include the sensitive attribute for reproducibility
     y = pd.Series(dataset.labels.astype(int).ravel(), name=dataset.label_names[0])
     # if dataset.__class__.__name__ == 'GermanDataset':
     #     y[y == 2] = 0
@@ -139,12 +139,25 @@ def convert_from_aif360_to_df(dataset, dataset_name=None):
 def load_convert_dataset_aif360(dataset_name='compas', remove_sensitive_attribute=False):
     ret_dict = {}
     check_download_dataset(dataset_name)
+    keys_to_save = ['protected_attribute_names']
+    data_values = DataValuesSingleton()
     if 'compas' in dataset_name:
         # ret_dict['protected'] = 'race'
         # ret_dict['privileged_groups'] = [{'Race': 1}]
         # ret_dict['unprivileged_groups'] = [{'Race': 0}]
         dataset_orig = load_preproc_data_compas(protected_attributes=['race'])
         # dataset_orig = CompasDataset(protected_attribute_names=['race'])
+
+        data_values.metadata = {'pos_label': 0, 'neg_label': 1,
+                                'label_maps': [{1.0: 'Did recid.', 0.0: 'No recid.'}],
+                                'protected_attribute_maps': {"sex": {0.0: 'Male', 1.0: 'Female'},
+                                                             "race": {1.0: 'Caucasian', 0.0: 'Not Caucasian'}},
+                                'protected_attribute_names': ['race'],
+                                'privileged_classes_map': {"sex": [1.0], "race": [1.0]},
+                                'priv_group': [1], 'unpriv_group': [0],
+                                'privileged_classes': [1], 'unprivileged_classes': [0],
+                                'label_name': 'two_year_recid',
+                                }
     elif 'german' in dataset_name:
         # ret_dict['protected'] = 'sex'
         # ret_dict['privileged_groups'] = [{'Sex': 1}]
@@ -155,6 +168,16 @@ def load_convert_dataset_aif360(dataset_name='compas', remove_sensitive_attribut
         dataset_orig.metadata['label_maps'] = [{1: 'Good Credit', 0: 'Bad Credit'}]
         dataset_orig.unfavorable_label = 0
         dataset_orig.labels[dataset_orig.labels == 2] = 0
+        data_values.metadata = {'pos_label': 1, 'neg_label': 0,
+                                'label_maps': [{1: 'Good Credit', 0: 'Bad Credit'}],
+                                'protected_attribute_maps': {"sex": {1.0: 'Male', 0.0: 'Female'},
+                                                             "age": {1.0: 'Old', 0.0: 'Young'}},
+                                'protected_attribute_names': ['sex'],
+                                'privileged_classes_map': {"sex": [1.0], "age": [1.0]},
+                                'priv_group': [1], 'unpriv_group': [0],
+                                'privileged_classes': [1], 'unprivileged_classes': [0],
+                                'label_name': 'credit',
+                                }
     elif 'adult_sigmod' in dataset_name or 'adult' in dataset_name:
         # ret_dict['protected'] = 'sex'
         # ret_dict['privileged_groups'] = [{'Sex': 1}]
@@ -166,13 +189,30 @@ def load_convert_dataset_aif360(dataset_name='compas', remove_sensitive_attribut
         #                             categorical_features=['age', 'education-num'],
         #                             features_to_keep=['age', 'education-num', 'sex']
         #                             )
+
+        data_values.metadata = {'pos_label': 1, 'neg_label': 0,
+                                'label_maps': [{1: ' >50K', 0: ' <=50K'}],
+                                'protected_attribute_maps': {"sex": {1.0: 'Male', 0.0: 'Female'},
+                                                             "race": {1.0: 'White', 0.0: 'Non-white'}},
+                                'protected_attribute_names': ['sex'],
+                                'privileged_classes_map': {"sex": [1.0], "race": [1.0]},
+                                'priv_group': [1], 'unpriv_group': [0],
+                                'privileged_classes': [1], 'unprivileged_classes': [0],
+                                'label_name': 'income-per-year',
+                                }
+
     else:
         raise_dataset_name_error(dataset_name)
     # ret_dict['aif360_dataset'] = dataset_orig
     X, y, A = convert_from_aif360_to_df(dataset_orig, dataset_name)
     if remove_sensitive_attribute:
         X = X.drop(dataset_orig.protected_attribute_names, axis=1)
+
     ret_dict['df'] = dict(zip(['X', 'y', 'A'], [X, y, A]))
+
+    # Check if the declared privileged group is the one with the highest mean of the positive label
+    assert pd.Series(y == data_values.metadata['pos_label']).groupby(A).mean().idxmax() == \
+           data_values.metadata['priv_group'][0]
     return X, y, A, dataset_orig
 
 
@@ -210,7 +250,7 @@ def load_transform_ACS(dataset_str, states=None, return_acs_data=False):
     loader_method: folktables.BasicProblem = getattr(folktables, dataset_str)
     if loader_method.group in loader_method.features:  # remove sensitive feature from data
         loader_method.features.remove(loader_method.group)
-    data_source = ACSDataSource(survey_year=2018, horizon='1-Year', survey='person', root_dir='cached_data')
+    data_source = ACSDataSource(survey_year=2018, horizon='1-Year', survey='person', root_dir=os.path.join(get_project_root(),'cached_data'))
 
     definition_df = data_source.get_definitions(download=True)
     categories = generate_categories(features=loader_method.features, definition_df=definition_df)
@@ -219,6 +259,14 @@ def load_transform_ACS(dataset_str, states=None, return_acs_data=False):
 
     df, label, group = loader_method.df_to_pandas(acs_data, categories=categories)
     # df, label, group = fix_nan(df, label, group, mode=fillna_mode)
+    data_values = DataValuesSingleton()
+    pos_label_map = {'ESR': 1, 'PUBCOV':1,
+                     } # todo add the others from https://arxiv.org/pdf/2108.04884
+    data_values.metadata = {'pos_label': pos_label_map.get(loader_method.target, 1),
+                            'protected_attribute_names': [loader_method.group],
+                            'label_name': loader_method.target,
+                            }
+    # pd.Series(label.values.ravel() == data_values.metadata['pos_label']).groupby(group.values.ravel()).mean().idxmax()
 
     categorical_cols = list(categories.keys())
     # See here for data documentation of cols https://www2.census.gov/programs-surveys/acs/tech_docs/pums/data_dict/
@@ -401,6 +449,7 @@ class DataValuesSingleton(metaclass=Singleton):
     index_dict = {}
     prediction_dict = {}
     phase = None
+    metadata = {}
 
     def set_phase(self, phase):
         if phase not in self.index_dict:
@@ -423,9 +472,9 @@ class DataValuesSingleton(metaclass=Singleton):
     def set_original_sensitive_attr(self, original_sensitive_attr):
         self.original_sensitive_attr = deepcopy(original_sensitive_attr)
 
-    def set_phase_and_predictions(self, prediction, phase: str):
+    def set_phase_and_predictions(self, y_pred, phase: str):
         self.set_phase(phase)
-        self.prediction_dict[self.phase] = prediction
+        self.prediction_dict[self.phase] = y_pred
 
     def get_predictions_with_indexes(self, phase):
         if phase not in self.index_dict or phase not in self.prediction_dict:
