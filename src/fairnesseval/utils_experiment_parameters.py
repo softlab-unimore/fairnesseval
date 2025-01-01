@@ -1,7 +1,10 @@
 import itertools
 import json
+import os
 
 import pandas as pd
+
+from fairnesseval.utils_general import get_project_root
 
 ADULT_ACS_PUBLIC_COVERAGE_ = ['adult_v0', 'ACSPublicCoverage']
 ACS_SELECTED_DATASETS = ['ACSPublicCoverage', 'ACSEmployment', ]
@@ -43,14 +46,14 @@ EPS_LIST_V1: list[float] = [0.001, .005, 0.01, 0.02, 0.05, 0.10]
 EPS_LIST_V2: list[float] = [0.001, .005, 0.01, 0.02, 0.05, 0.10, 0.15]
 TRAIN_FRACTIONS_SMALLER_DATASETS_v1 = [0.016, 0.063, 0.251, 1.]
 TRAIN_FRACTIONS_v1 = [0.001, 0.004, 0.016, 0.063, 0.251, 1]  # np.geomspace(0.001,1,7) np.linspace(0.001,1,7)
-eta_params_v1 = json.dumps({'eta0': [0.5, 1.0, 2.0], 'run_linprog_step': [False],
+ETA_PARAMS_V1 = json.dumps({'eta0': [0.5, 1.0, 2.0], 'run_linprog_step': [False],
                             'max_iter': [5, 10, 20, 50, 100]})
 eta_params_restricted_v1 = json.dumps({'eta0': [2.0], 'run_linprog_step': [False],
                                        'max_iter': [50]})
 
 eta_params_restricted_v2 = json.dumps({'eta0': [2.0], 'run_linprog_step': [False],
                                        'max_iter': [100]})
-eta_params_restricted_v3 = {'eta0': [0.5, 1.0, 2.0], 'run_linprog_step': [False],
+ETA_PARAMS_RESTRICTED_V3 = {'eta0': [0.5, 1.0, 2.0], 'run_linprog_step': [False],
                             'max_iter': [50]}
 expgrad_sample_params_small_v1 = json.dumps({'eta0': [0.5, 1.0, 2.0], 'run_linprog_step': [False], 'max_iter': [20, 50],
                                              'eps': BASE_EPS_V1, 'constraint_code': ['dp', 'eo'],
@@ -62,7 +65,9 @@ expgrad_sample_params_medium_v1 = json.dumps(
 expgrad_params_restricted_v3 = json.dumps({'eta0': [0.5, 1.0, 2.0], 'run_linprog_step': [False], 'max_iter': [20, 50],
                                            'eps': BASE_EPS_V1, 'constraint_code': ['dp', 'eo'],
                                            })
-DEFAULT_SAVE_PATH = './results/'
+DEFAULT_SAVE_PATH = os.path.join(get_project_root(), 'results', 'default')
+DEFAULT_RESULTS_PATH = os.path.join(get_project_root(), 'results')
+DEMO_SAVE_PATH =  os.path.join(get_project_root(), 'streamlit', 'demo_results')
 
 experiment_configurations = [
     {'experiment_id': 's_h_1.0.TEST',
@@ -77,7 +82,6 @@ experiment_configurations = [
      'train_test_seeds': [0],
      'constraint_code': 'dp'},
 
-
     {'experiment_id': 'experiment_code.0',
      'dataset_names': ['ACSEmployment'],  # list of dataset names
      'model_names': ['hybrids'],  # list of model names
@@ -86,7 +90,7 @@ experiment_configurations = [
      'base_model_code': ['lr', 'lgbm'],  # list of base model codes
      'random_seeds': RANDOM_SEEDS_v1,  # list of random seeds
      'constraint_code': 'dp',  # constraint code
-     'model_params': eta_params_v1,
+     'model_params': ETA_PARAMS_V1,
      },
 
     {'experiment_id': 's_h_1.0.TEST',
@@ -454,7 +458,7 @@ experiment_configurations = [
      'base_model_code': ['lr'],
      'random_seeds': RANDOM_SEEDS_v1,
      'constraint_code': 'dp',
-     'model_params': eta_params_v1,
+     'model_params': ETA_PARAMS_V1,
      },
     {'experiment_id': 'f_eta0_1.0',
      'dataset_names': sigmod_datasets,
@@ -463,7 +467,7 @@ experiment_configurations = [
      'base_model_code': ['lr'],
      'random_seeds': RANDOM_SEEDS_v1,
      'constraint_code': 'dp',
-     'model_params': eta_params_v1,
+     'model_params': ETA_PARAMS_V1,
      },
     {'experiment_id': 'f_eta0_1.1',
      'dataset_names': sigmod_datasets,
@@ -472,7 +476,7 @@ experiment_configurations = [
      'base_model_code': ['lgbm'],
      'random_seeds': RANDOM_SEEDS_v1,
      'constraint_code': 'dp',
-     'model_params': eta_params_v1,
+     'model_params': ETA_PARAMS_V1,
      },
     {'experiment_id': 'f_eta0_1.2',
      'dataset_names': ACS_SELECTED_DATASETS,
@@ -500,7 +504,7 @@ experiment_configurations = [
      'base_model_code': ['lr'],
      'random_seeds': RANDOM_SEEDs_RESTRICTED_V1,
      'train_test_fold': RANDOM_SEEDs_RESTRICTED_V1,
-     'model_params': eta_params_restricted_v3 | dict(constraint_code=['dp', 'eo'],
+     'model_params': ETA_PARAMS_RESTRICTED_V3 | dict(constraint_code=['dp', 'eo'],
                                                      eps=EPS_LIST_V2),
      },
     {'experiment_id': 'exp_h_eps_PUB.1r',
@@ -580,7 +584,7 @@ experiment_configurations = [
      'base_model_code': ['lr'],
      'random_seeds': RANDOM_SEEDS_v1,
      'constraint_code': 'eo',
-     'model_params': eta_params_v1,
+     'model_params': ETA_PARAMS_V1,
      },
     {'experiment_id': 'f_eta0_2.1',
      'dataset_names': sigmod_datasets,
@@ -589,7 +593,7 @@ experiment_configurations = [
      'base_model_code': ['lgbm'],
      'random_seeds': RANDOM_SEEDS_v1,
      'constraint_code': 'eo',
-     'model_params': eta_params_v1,
+     'model_params': ETA_PARAMS_V1,
      },
     {'experiment_id': 'f_eta0_eps.1',
      'dataset_names': sigmod_datasets,
@@ -598,7 +602,7 @@ experiment_configurations = [
      'base_model_code': ['lr'],
      'random_seeds': RANDOM_SEEDS_v1,
      'constraint_code': 'dp',
-     'model_params': eta_params_v1,
+     'model_params': ETA_PARAMS_V1,
      },
     {'experiment_id': 'f_eta0_eps.2',
      'dataset_names': sigmod_datasets,
@@ -607,7 +611,7 @@ experiment_configurations = [
      'base_model_code': ['lr'],
      'random_seeds': RANDOM_SEEDS_v1,
      'constraint_code': 'eo',
-     'model_params': eta_params_v1,
+     'model_params': ETA_PARAMS_V1,
      },
 
     {'experiment_id': 'sigmod_h_exp_1.0',  # done

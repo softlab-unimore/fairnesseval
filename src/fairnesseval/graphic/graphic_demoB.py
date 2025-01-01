@@ -4,6 +4,7 @@ import numpy as np
 
 from fairnesseval import utils_results_data
 from fairnesseval.graphic.graphic_utility import plot_demo_subplots, PlotUtility, plot_all_df_subplots
+from fairnesseval.utils_experiment_parameters import DEMO_SAVE_PATH
 from fairnesseval.utils_general import get_project_root
 
 
@@ -28,8 +29,7 @@ def plot_function_B(chart_name, experiment_code_list, model_list, x_axis, y_axis
 
 
 if __name__ == '__main__':
-    dataset_results_path = os.path.join(os.path.dirname(__file__), '..', '..', '..', 'streamlit', 'demo_results')
-    dataset_results_path = os.path.abspath(dataset_results_path)
+    dataset_results_path = DEMO_SAVE_PATH
     base_plot_dir = os.path.join(dataset_results_path.replace('demo_results', 'demo_plots'))
     plot_function_B(**{"chart_name": "demo.B", "experiment_code_list": ["demo.D.0r", "demo.D.1r"],
                        "model_list": ["fairlearn", "LogisticRegression"], "x_axis": "train_fractions",

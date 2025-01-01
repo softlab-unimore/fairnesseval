@@ -10,6 +10,7 @@ from fairnesseval.graphic.style_utility import StyleUtility
 from fairnesseval.graphic.utils_results_data import prepare_for_plot
 from fairnesseval.graphic.graphic_utility import plot_all_df_subplots, PlotUtility
 from fairnesseval.graphic import graphic_utility
+from fairnesseval.utils_experiment_parameters import DEFAULT_RESULTS_PATH
 
 if __name__ == '__main__':
     save = True
@@ -26,8 +27,8 @@ if __name__ == '__main__':
         # 'acsER_binB2.1r',
     ]
 
-    dataset_results_path = os.path.join("results")
-    base_plot_dir = os.path.join('results', 'plots')
+    dataset_results_path = DEFAULT_RESULTS_PATH
+    base_plot_dir = os.path.join(DEFAULT_RESULTS_PATH, 'plots')
     all_df = utils_results_data.load_results_experiment_id(experiment_code_list, dataset_results_path)
     all_df.columns = [x.replace('violation', 'DemographicParity') for x in all_df.columns]
     # all_df = all_df.rename(

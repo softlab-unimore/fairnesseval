@@ -8,6 +8,7 @@ from fairnesseval import utils_results_data
 from fairnesseval.graphic.graphic_utility import select_oracle_call_time, PlotUtility, plot_all_df_subplots, \
     extract_expgrad_oracle_time
 from fairnesseval.graphic.utils_results_data import prepare_for_plot, best_gap_filter_on_eta0, cols_to_synch
+from fairnesseval.utils_experiment_parameters import DEFAULT_SAVE_PATH
 
 if __name__ == '__main__':
     save = True
@@ -91,7 +92,7 @@ if __name__ == '__main__':
 
     sort_map = {name: i for i, name in enumerate(exp_frac_models)}
 
-    dataset_results_path = os.path.join("results")
+    dataset_results_path = DEFAULT_RESULTS_PATH
     sample_rlp_false = utils_results_data.load_results_experiment_id(['e_s.0', 'e_s.1', 'e_m.0', 'e_m.1',
                                                                       'e_l.fast', 'e_l.fast.2', ], dataset_results_path)
     # where sumbsample is not none and add '_smart_sample' to the model_code and assign subsample to exp_frac

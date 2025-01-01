@@ -2,6 +2,7 @@ import os
 
 import pandas as pd
 
+from fairnesseval.utils_experiment_parameters import DEFAULT_RESULTS_PATH
 from . import utils_results_data
 from .graphic_utility import plot_routine_other
 
@@ -51,7 +52,7 @@ if __name__ == '__main__':
 
     sort_map = {name: i for i, name in enumerate(exp_frac_models)}
 
-    dataset_results_path = os.path.join("results", "fairlearn-2")
+    dataset_results_path = DEFAULT_RESULTS_PATH
 
     all_df = utils_results_data.load_results_experiment_id(gf_1_conf, dataset_results_path)
 

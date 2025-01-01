@@ -6,6 +6,7 @@ import pandas as pd
 from fairnesseval import utils_results_data
 from fairnesseval.graphic.graphic_utility import PlotUtility, plot_all_df_subplots
 from fairnesseval.graphic.utils_results_data import best_gap_filter_on_eta0
+from fairnesseval.utils_experiment_parameters import DEFAULT_RESULTS_PATH
 
 if __name__ == '__main__':
     save = True
@@ -18,7 +19,7 @@ if __name__ == '__main__':
         'f_eta0_2.1',
     ]
 
-    dataset_results_path = os.path.join("results")
+    dataset_results_path = DEFAULT_RESULTS_PATH
     all_df = utils_results_data.load_results_experiment_id(experiment_code_list, dataset_results_path)
     str_map = {True: 'T', False: 'F'}
     model_code = 'RLP=' + all_df['run_linprog_step'].map(str_map)  # + ' max_iter==' + all_df['max_iter'].astype(str)

@@ -9,6 +9,7 @@ from fairnesseval.graphic import utils_results_data, graphic_utility
 from fairnesseval.graphic.style_utility import StyleUtility
 from fairnesseval.graphic.utils_results_data import prepare_for_plot
 from fairnesseval.graphic.graphic_utility import plot_all_df_subplots, PlotUtility, plot_demo_subplots
+from fairnesseval.utils_experiment_parameters import DEMO_SAVE_PATH
 from fairnesseval.utils_general import get_project_root
 
 if __name__ == '__main__':
@@ -19,9 +20,9 @@ if __name__ == '__main__':
         'demo.A.1r',
         ]
 
-    # dataset_results_path = os.path.join("results")
+    # dataset_results_path = DEFAULT_RESULTS_PATH
 
-    dataset_results_path = os.path.join(get_project_root(), 'streamlit', 'demo_results')
+    dataset_results_path = DEMO_SAVE_PATH
     base_plot_dir = os.path.join(dataset_results_path.replace('demo_results', 'demo_plots'))
     results_df = utils_results_data.load_results_experiment_id(experiment_code_list, dataset_results_path)
     #filter dataset_name == adult_sigmod
