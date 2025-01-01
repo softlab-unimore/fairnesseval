@@ -17,7 +17,7 @@ seed_columns = ['random_seed', 'train_test_fold', 'train_test_seed']
 cols_to_synch = ['dataset_name', 'base_model_code', 'constraint_code', 'eps', 'train_test_seed', 'random_seed',
                  'train_test_fold', ]
 cols_to_index = ['dataset_name', 'base_model_code', 'constraint_code', 'eps', 'model_code', 'method', 'exp_frac',
-                 'grid_frac']
+                 'grid_frac', 'subsample']
 
 time_columns = ['metrics_time', 'time', 'grid_oracle_times']
 numerical_cols = ['time', 'train_error', 'train_accuracy', 'test_accuracy',
@@ -50,10 +50,13 @@ def get_numerical_cols(df):
 
 def add_sigmod_metric(df):
     for split in ['train', 'test']:
-        df[split + '_di'] = pd.concat([df[split + '_di'], 1 / df[split + '_di']], axis=1).min(axis=1)
+        if f'{split}_di' in df.columns:
+            df[f'{split}_di'] = pd.concat([df[f'{split}_di'], 1 / df[f'{split}_di']], axis=1).min(axis=1)
         df[split + '_accuracy'] = 1 - df[split + '_error']
-        df[split + '_TPRB'] = 1 - df[split + '_TPRB']
-        df[split + '_TNRB'] = 1 - df[split + '_TNRB']
+        if f'{split}_TPRB' in df.columns:
+            df[split + '_TPRB'] = 1 - df[split + '_TPRB']
+        if f'{split}_TNRB' in df.columns:
+            df[split + '_TNRB'] = 1 - df[split + '_TNRB']
     return df
 
 
@@ -191,6 +194,7 @@ def fix_expgrad_times(df: pd.DataFrame) -> pd.DataFrame:
 
 def aggregate_phase_time(df):
     turn_time_columns = list(set(df.columns[df.columns.str.contains('time')].tolist() + time_columns))
+    turn_time_columns = np.intersect1d(turn_time_columns, df.columns).tolist()
     cols_to_group = np.setdiff1d(df.columns, turn_time_columns + ['phase']).tolist()
     results_df = df.groupby(cols_to_group,
                             as_index=False, dropna=False, sort=False)[turn_time_columns].sum(min_count=1)
@@ -317,8 +321,7 @@ def load_results_experiment_id(experiment_code_list, results_path):
         if cur_dir is None or not os.path.exists(cur_dir):
             cur_dir = os.path.join(results_path, experiment_code)
         if cur_dir is None or not os.path.exists(cur_dir):
-            logger = LoggerSingleton()
-            logger.warning(f'{cur_dir} does not exists. Skipped.')
+            print(f'{cur_dir} does not exists. Skipped.')
             continue
 
         for filepath in os.scandir(cur_dir):
@@ -389,12 +392,14 @@ def align_seeds(df):
     return pd.concat(df_list)
 
 
-def prepare_for_plot(df, grouping_col=None):
+def prepare_for_plot(df, grouping_col=None, return_multi_index=False):
     # df = align_seeds(df)
     time_aggregated_df = aggregate_phase_time(df)
     groupby_col_list = cols_to_index
     if grouping_col is not None:
-        groupby_col_list += [grouping_col]
+        if not isinstance(grouping_col, list):
+            grouping_col = [grouping_col]
+        groupby_col_list += grouping_col
     groupby_col_list = np.intersect1d(groupby_col_list, time_aggregated_df.columns).tolist()
     time_aggregated_df.columns = time_aggregated_df.columns.str.replace('violation', 'DemographicParity')
     time_aggregated_df = time_aggregated_df.rename(columns=column_rename_map_before_plot)
@@ -409,9 +414,12 @@ def prepare_for_plot(df, grouping_col=None):
     # todo check seed values, filter older seeds.
     grouped_data = time_aggregated_df.groupby(groupby_col_list, as_index=True, dropna=False, sort=False)[
         new_numerical_cols]
-    mean_error_df = grouped_data.agg(['mean', ('error', get_error)])
+    mean_error_df = grouped_data.agg(['mean', ('error', get_error), 'std'])
+    if return_multi_index:
+        return mean_error_df
     mean_error_df.loc[:, (slice(None), 'error')] = mean_error_df.loc[:, (slice(None), 'error')].fillna(0)
-    mean_error_df.columns = mean_error_df.columns.map('_'.join).str.strip('_')
+
+    mean_error_df.columns = mean_error_df.columns.map('__'.join).str.strip('_')
     size_series = grouped_data.size()
     size_series.name = 'size'
     mean_error_df = mean_error_df.join(size_series).reset_index()
