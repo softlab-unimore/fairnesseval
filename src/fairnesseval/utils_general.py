@@ -48,13 +48,15 @@ def get_project_root() -> str:
 def init_logger(save_dir: str) -> logging.Logger:
     logger = logging.getLogger(__name__)
     # reset the logger
-    for handler in logger.handlers[:]:
-        logger.removeHandler(handler)
+    # for handler in logger.handlers[:]:
+    #     logger.removeHandler(handler)
+    #     handler.close()
+    logger.propagate = False
     logger.setLevel(logging.INFO)
     c_handler = logging.StreamHandler()
     f_handler = logging.FileHandler(os.path.join(save_dir, 'run.log'), mode='a')
-    c_handler.setLevel(logging.INFO)
-    f_handler.setLevel(logging.INFO)
+    # c_handler.setLevel(logging.INFO)
+    # f_handler.setLevel(logging.INFO)
     format = logging.Formatter(fmt='%(asctime)s %(levelname)s:%(name)s: %(message)s',
                                  datefmt='%d/%m/%y %H:%M:%S', )
     c_handler.setFormatter(format)

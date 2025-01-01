@@ -16,7 +16,7 @@ from fairnesseval.graphic.utils_results_data import get_info, get_confidence_err
     aggregate_phase_time, filter_results, seed_columns, prepare_for_plot, constraint_code_to_name
 import matplotlib as mpl
 
-from fairnesseval.utils_general import intersection_sorted, difference_sorted, LoggerSingleton
+from fairnesseval.utils_general import intersection_sorted, difference_sorted, LoggerSingleton, get_project_root
 
 sns.set()  # for plot styling
 # sns.set(rc={'figure.figsize':(8,6)})
@@ -133,7 +133,7 @@ class PlotUtility():
         self.show = show
         self.suffix = suffix
         self.save_flag = save
-        self.base_plot_dir = base_plot_dir if base_plot_dir is not None else os.path.join(os.path.dirname(__file__),
+        self.base_plot_dir = base_plot_dir if base_plot_dir is not None else os.path.join(get_project_root(),
                                                                                           'results', 'plots')
         self.annotate_mode = annotate_mode
         self.params = dict(no_errorbar=False)
@@ -249,10 +249,11 @@ class PlotUtility():
                 # self.ax.axhline(y[-1], zorder=10, **line_params)
                 pass
 
+
         markers_params['markersize'] = markers_params.pop('s') ** .5
         params = markers_params | label_params | line_params
-        # if len(set(x)) > 1:
-        #     params.pop('linewidth')
+        if len(y) == 1 and len(x) == 1:
+            params['linestyle'] = 'none'
         self.ax.errorbar(**value_dict, **params)
 
     def add_bar(self, value_dict, grouping_values, model_code, index, n_lines, label_suffix=''):
@@ -660,13 +661,12 @@ def plot_all_df_subplots(all_df, model_list, chart_name, save, show=True, groupi
             tmp_dict = [ax.get_legend_handles_labels() for ax in axes_array.flat[::-1]]
             handles, labels = max(tmp_dict, key=lambda x: len(x[1]))
             if len(labels) != len(model_list):
-                logger = LoggerSingleton()
-                logger.warning('Some model are not displayed.')
+                print('Some model are not displayed.')
 
             if pl_util.params.get('legend_hook', None) is not None:
                 pl_util.params['legend_hook'](fig, handles, labels)
             else:
-                fig.legend(handles, labels, ncol=min(7, len(labels)),
+                fig.legend(handles, labels, ncol=min(9, len(labels)),
                            loc='upper center',
                            bbox_to_anchor=(0.5, -0.02),
                            bbox_transform=fig.transFigure,
@@ -697,6 +697,7 @@ def plot_all_df_subplots(all_df, model_list, chart_name, save, show=True, groupi
 
             if show:
                 fig.show()
+                pass
             pl_util.save_figure(additional_dir_path=result_path_name,
                                 name=f'{chart_name}all_{base_model_code}_{constraint_code}_VARY_{grouping_col}_subplots')
     pl_util.show = show
