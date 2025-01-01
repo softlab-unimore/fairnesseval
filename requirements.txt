@@ -20,3 +20,6 @@ altair>=4.1.0
 BlackBoxAuditing==0.1.54
 streamlit-vertical-slider==2.5.5
 streamlit-toggle==0.1.3
+pytest
+tensorflow==2.18.0
+ecos==2.0.14
