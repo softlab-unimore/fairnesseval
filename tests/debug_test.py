@@ -11,5 +11,6 @@ from test_models import TestModels
 if __name__ == '__main__':
     test = TestModels()
     test.setUp()
-    test.test_expgrad_and_base_model_grid_params()
+    # test.test_expgrad_and_base_model_grid_params()
+    test.test_ACS()
     test.tearDown()

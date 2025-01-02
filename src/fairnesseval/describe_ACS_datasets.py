@@ -36,10 +36,10 @@ if __name__ == '__main__':
         t_dict.update(dataset_name=dataset_str, size=X.shape[0], columns=X.shape[1], sensitive_attr=A.name,
                       sensitive_attr_nunique=A.nunique(), target_col=y.name, sensitive_attr_unique_values=A.unique(),
                       mem_usage=mem_usage)
-        if dataset_str in ['adult', 'ACSPublicCoverage',
-                           'ACSEmployment', ]:
-            er.dataset_str = dataset_str
-            best_params_dict = er.load_best_params(base_model_code='lr', fraction=1.)
-            t_dict.update(**best_params_dict)
+        # if dataset_str in ['adult', 'ACSPublicCoverage',
+        #                    'ACSEmployment', ]:
+        er.dataset_str = dataset_str
+        best_params_dict = er.load_best_params(base_model_code='lr', fraction=1.)
+        t_dict.update(**best_params_dict)
         dict_list.append(t_dict.copy())
     pd.DataFrame(dict_list).to_csv(os.path.join(descriptions_dir, 'all_df_descriptions_summary.csv'))

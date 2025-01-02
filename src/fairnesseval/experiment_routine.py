@@ -149,10 +149,10 @@ if __name__ == "__main__":
 
     conf_todo = [
         # pending
+        's_zDI_1.2N',  # BIG # todo repeat
 
         'rlp_F_1.12N',
 
-        's_zDI_1.2N',  # BIG # todo repeat
         # debugging
 
         # ###
