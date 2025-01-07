@@ -143,15 +143,15 @@ new_exp_done = ['s_c_1.0N',  # done
                 'rlp_F_1.0N',  # small
                 'a_e_1.0N',
                 's_e_1.0N',
+                'a_e_1.1N',
+                'rlp_F_1.1N',  # big
+                'rlp_F_1.12N',
                 ]
 
 if __name__ == "__main__":
 
     conf_todo = [
         # pending
-        's_zDI_1.2N',  # BIG # todo repeat
-
-        'rlp_F_1.12N',
 
         # debugging
 
@@ -159,10 +159,8 @@ if __name__ == "__main__":
         # # running now
         # #AB2
         # #AB3
-        # 'a_e_1.1N',
-        # #AB4
-        # 'rlp_F_1.1N',  # big
 
+        # #AB4
     ]
 
     # run.launch_experiment_by_config({"experiment_id": "q12",

@@ -401,8 +401,8 @@ def time_stacked_by_phase(df, ax, fig: plt.figure, name_col='label'):
         {x: ['mean', ('error', get_confidence_error)] for x in to_index})
     to_plot.columns = to_plot.columns.map('_'.join).str.strip('_')
     to_plot = to_plot.query('phase == "expgrad_fracs"')
-    yerr = to_plot.loc[:, [x + '_error' for x in to_index]]
-    to_plot.plot.bar(x='frac', stacked=True, y=[x + '_mean' for x in to_index], yerr=yerr.values.T, rot=45, ax=ax)
+    yerr = to_plot.loc[:, [x + '__error' for x in to_index]]
+    to_plot.plot.bar(x='frac', stacked=True, y=[x + '__mean' for x in to_index], yerr=yerr.values.T, rot=45, ax=ax)
 
     xticklabels = ax.xaxis.get_ticklabels()
     for label in xticklabels:
@@ -411,10 +411,10 @@ def time_stacked_by_phase(df, ax, fig: plt.figure, name_col='label'):
 
 
 def bar_plot_function_by_dataset(df, ax, fig: plt.figure, name_col='label', y_axis_list=None):
-    to_plot = df.pivot_table(values=['time_mean', 'time_error'], index=['dataset_name'], columns=['model_code'], )
-    yerr = to_plot.loc[:, (['time_error'], slice(None))]
+    to_plot = df.pivot_table(values=['time__mean', 'time__error'], index=['dataset_name'], columns=['model_code'], )
+    yerr = to_plot.loc[:, (['time__error'], slice(None))]
     yerr.columns = yerr.columns.get_level_values(1)
-    tmp = to_plot.loc[:, (['time_mean'], slice(None))]
+    tmp = to_plot.loc[:, (['time__mean'], slice(None))]
     tmp.columns = tmp.columns.get_level_values(1)
     tmp.plot.bar(logy=True, yerr=yerr, rot=0, ax=ax, fontsize=8, )
 
@@ -430,11 +430,11 @@ def bar_plot_function_by_model(df, ax, fig: plt.figure, name_col='model_code', y
     index = df.index.array
     # index[1::2] = '\n' + index[1::2]
     df.index = index
-    df = df[pd.concat([orig_y_axis_list, orig_y_axis_list + '_error'])]
+    df = df[pd.concat([orig_y_axis_list, orig_y_axis_list + '__error'])]
 
     df = df.rename(columns=dict(zip(orig_y_axis_list, y_axis_list)))
-    df = df.rename(columns=dict(zip(orig_y_axis_list + '_error', y_axis_list + '_error')))
-    yerr = df[y_axis_list + '_error']
+    df = df.rename(columns=dict(zip(orig_y_axis_list + '__error', y_axis_list + '__error')))
+    yerr = df[y_axis_list + '__error']
     yerr.columns = y_axis_list
     df[yerr.columns].plot.bar(yerr=yerr, rot=0, fontsize=10, ax=ax)
     # ax.set_xlabel('')
@@ -572,7 +572,7 @@ def plot_all_df_subplots(all_df, model_list, chart_name, save, show=True, groupi
     :return:
     """
     if annotate_col is not None:
-        annotate_col += '_mean'
+        annotate_col += '__mean'
     if chart_name != '':
         chart_name += '_'
     # filtered_df = utils_results_data.prepare_data(all_df)
@@ -814,7 +814,7 @@ def plot_by_df(pl_util: PlotUtility, all_df, model_list, model_set_name, groupin
 
 
 def check_axis_validity(df, x_axis, y_axis):
-    if x_axis not in df.columns and x_axis + '_mean' not in df.columns:
+    if x_axis not in df.columns and x_axis + '__mean' not in df.columns:
         raise ValueError(f'{x_axis} is not a valid x_axis')
     if y_axis == x_axis:
         raise ValueError(f'{x_axis} and {y_axis} are not a valid x_axis, y_axis combination.')
@@ -828,7 +828,7 @@ def plot_demo_subplots(all_df, model_list, chart_name, save, show=False, groupin
                        ylim_list=None, annotate_mode='all', annotate_col=None,
                        custom_add_graphic_object=None, pl_util=None, params={}, pl_params={}):
     if annotate_col is not None:
-        annotate_col += '_mean'
+        annotate_col += '__mean'
     name_suffix = f' - VARY {grouping_col}' if grouping_col is not None else ''
     # filtered_df = utils_results_data.prepare_data(all_df)
     model_list = list(model_list)

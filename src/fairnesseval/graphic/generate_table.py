@@ -17,6 +17,7 @@ if __name__ == '__main__':
     rlp_false_conf_list = [
         'rlp_F_1.0N',
         'rlp_F_1.1N',
+        'rlp_F_1.12N',
     ]
 
     dataset_results_path = DEFAULT_RESULTS_PATH
@@ -53,10 +54,12 @@ if __name__ == '__main__':
         if dtype == 'object':
             aggregated_results[col] = aggregated_results[col].astype(str).apply(replace_words)
 
-    aggregated_results.columns = [replace_words(' '.join(x.replace('_', ' ').split())) for x in aggregated_results.columns]
+    aggregated_results.columns = [replace_words(' '.join(x.replace('_', ' ').split())) for x in
+                                  aggregated_results.columns]
     cols_to_delete = ['best gap', 'best iter', 'eps', 'eta0', 'last iter', 'max iter', 'n oracle calls',
                       'n oracle calls dummy returned', 'random seed', 'subsample', ]
-    cols_to_delete_expanded = [f'{replace_words(col)} {suffix}' for col in cols_to_delete for suffix in ['mean', 'std','error']]
+    cols_to_delete_expanded = [f'{replace_words(col)} {suffix}' for col in cols_to_delete for suffix in
+                               ['mean', 'std', 'error']]
     aggregated_results = aggregated_results.drop(columns=cols_to_delete_expanded)
     aggregated_results.to_csv(table_save_path, index=False)
     aggregated_results.to_csv(os.path.join(get_project_root(), 'table_results.csv'), index=False)

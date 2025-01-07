@@ -116,7 +116,7 @@ experiment_definitions = [
     base_conf_v0 | {'experiment_id': 'a_e_1.1N',
                     'dataset_names': ACS_SELECTED_DATASETS,
                     'model_names': ['expgrad'],
-                    'eps': EPS_LIST_V2, # <--- BIG
+                    'eps': EPS_LIST_V2,  # <--- BIG
                     'model_params': {'subsample': [0.251]},
                     'base_model_code': ['lr', 'lgbm'],
                     'constraint_code': ['dp', 'eo'],
