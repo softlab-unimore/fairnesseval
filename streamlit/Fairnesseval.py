@@ -33,7 +33,7 @@ if pagina_selezionata == "Welcome page":
     # Title
     st.write("# Welcome to Fairnesseval!")
 
-    st.image("architecture.svg", caption="Fairnesseval architecture", use_column_width=True)
+    st.image("architecture.svg", caption="Fairnesseval architecture", use_container_width=True)
 
     st.markdown("""
 <div style="text-align: justify; line-height: 1.6;">

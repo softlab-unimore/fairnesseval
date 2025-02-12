@@ -17,6 +17,10 @@ We compare various approaches and simulate deployment scenarios to showcase Fair
 ## Instalation
 Open a terminal in a directory where you want to install Fairnesseval and run the following command:
 
+[//]: # (Say that it has been tested with Python 3.9.12 and 3.11.0)
+Python should be installed on your system. The library has been tested with Python 3.9.12 and 3.11.0.
+You can use a virtual environment to install the library or install it globally.
+
 ```bash
 git clone https://github.com/softlab-unimore/fairnesseval.git
 pip install -e fairnesseval
@@ -30,7 +34,7 @@ To run the demonstration, navigate to the `streamlit` folders and run the stream
 ```bash
 cd fairnesseval
 cd streamlit
-streamlit run page_welcome.py
+streamlit run Fairnesseval.py
 ```
 In [here](streamlit%2FREADME.md) you can find more information about the Streamlit UI and examples of how to use it. 
 
