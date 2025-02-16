@@ -25,7 +25,8 @@ def plot_function_B(chart_name, experiment_code_list, model_list, x_axis, y_axis
     return plot_demo_subplots(all_df, model_list=model_list, chart_name=chart_name, save=save, show=show,
                               axis_to_plot=[[x_axis, y_axis] for y_axis in y_axis_list],
                               sharex=True,
-                              use_subplots=single_plot, grouping_col=grouping_col, pl_params=dict(base_plot_dir=base_plot_dir), **kwargs)
+                              use_subplots=single_plot, grouping_col=grouping_col,
+                              pl_params=dict(base_plot_dir=base_plot_dir), **kwargs)
 
 
 if __name__ == '__main__':

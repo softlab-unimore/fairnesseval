@@ -131,8 +131,8 @@ def create_wrapper(method_str, random_state=42, datasets=None, **kwargs):
         def predict(self, X):
             return self.model.predict(X)
     PersonalizedWrapper.predict = predict
-
-    return PersonalizedWrapper(method_str, random_state, datasets, **kwargs)
+    adjusted_params = {k: v for k, v in kwargs.items() if k in inspect.signature(model_class.__init__).parameters}
+    return PersonalizedWrapper(method_str, random_state, datasets, **adjusted_params)
 
 
 def get_model(method_str, random_state=42, **kwargs):

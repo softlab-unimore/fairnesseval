@@ -532,8 +532,8 @@ def plot_routine_other(all_model_df, dataset_name, save=True, show=True, suffix=
 def rename_columns_to_plot(df, x_axis, y_axis):
     for key, column in {'x': x_axis, 'y': y_axis}.items():
         for (suffix, sub_col) in {'': 'mean', 'err': 'error'}.items():
-            assert f'{column}_{sub_col}' in df.columns, f'{column}_{sub_col} not in df.columns, check column names.'
-            df[f'{key}{suffix}'] = df[f'{column}_{sub_col}']
+            assert f'{column}__{sub_col}' in df.columns, f'{column}_{sub_col} not in df.columns, check column names.'
+            df[f'{key}{suffix}'] = df[f'{column}__{sub_col}']
     return df
 
 
@@ -817,7 +817,7 @@ def check_axis_validity(df, x_axis, y_axis):
     if x_axis not in df.columns and x_axis + '__mean' not in df.columns:
         raise ValueError(f'{x_axis} is not a valid x_axis')
     if y_axis == x_axis:
-        raise ValueError(f'{x_axis} and {y_axis} are not a valid x_axis, y_axis combination.')
+        raise ValueError(f'{x_axis} and {y_axis} are not a valid x_axis, y_axis combination. They should not be equal!')
 
 
 def plot_demo_subplots(all_df, model_list, chart_name, save, show=False, grouping_col=None, axis_to_plot=None,
