@@ -1,7 +1,7 @@
 import streamlit as st
 import streamlit_scrollable_textbox as stx
 import os
-from fairnesseval import utils_experiment_parameters as exp_params
+from fairnesseval import utils_experiment_parameters as exp_params, utils_prepare_data
 from fairnesseval.models.models import all_available_models
 from fairnesseval.run import launch_experiment_by_config
 from fairnesseval.utils_general import get_project_root
@@ -81,6 +81,16 @@ def stpage01_exp_definition_and_execution():
     # Random seed input
     random_seed = st.text_input('Random Seed: enter a value or a list of values (e.g. [41,42,23]) (default: 0)', '0')
 
+    # split_strategy
+    available_split_strategies = utils_prepare_data.split_strategy_map.keys()
+    split_strategy = st.selectbox('Split strategy', available_split_strategies, index=1,
+                                  help='Choose the split strategy. Default is StratifiedKFold with 3 folds. ')
+
+    # train_test_fold
+    train_test_fold = st.text_input('Train test fold: enter a value or a list of values (e.g. [0,1,2]) (default: [0, 1, 2])',
+                                    '[0, 1, 2]', help='Choose the train test fold. To run a single fold, enter a single value.'
+                                                      'eg.: 0')
+
     # Experiment ID
     experimentID = st.text_input('Experiment ID: enter the name of the experiment (Required)', f'demo.{i:02d}')
 
@@ -104,6 +114,8 @@ def stpage01_exp_definition_and_execution():
                     'model_params': eval_none(model_parameters),
                     'train_fractions': eval_none(train_fractions),
                     'results_path': results_path,
+                    'split_strategy': split_strategy,
+                    'train_test_fold': eval_none(train_test_fold),
                     'params': ['--debug']  # Placeholder for other parameters
                 }
 
