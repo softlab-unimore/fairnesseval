@@ -227,7 +227,9 @@ class StyleUtility:
         label = replace_words(StyleUtility.get_label(key))
         if label not in StyleUtility.graphic_style_map.keys():
             print(f'key {label} not in graphic_style_map')
-            return StyleUtility.graphic_style_map['default']
+            default = StyleUtility.graphic_style_map['default']
+            default['label'] = label
+            return default
         return StyleUtility.graphic_style_map[label]
 
     @staticmethod
