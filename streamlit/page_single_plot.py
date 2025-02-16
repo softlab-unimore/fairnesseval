@@ -47,6 +47,7 @@ def generate_graph(chart_name, experiment_code_list, model_list, x_axis, y_axis_
 
     # Graphic generation
     try:
+        print(params)
         fig = plot_function_B(**params, res_path=res_dir, single_plot=False, show=False)
         st.pyplot(fig)  # Mostra il grafico con Streamlit
     except Exception as e:
