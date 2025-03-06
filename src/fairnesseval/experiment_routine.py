@@ -149,7 +149,7 @@ new_exp_done = ['s_c_1.0N',  # done
                 ]
 
 if __name__ == "__main__":
-
+    #TODO check train test fold at 0 in demo config with expgrad, it's not recognized
     conf_todo = [
         # pending
 

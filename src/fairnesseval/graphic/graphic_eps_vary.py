@@ -121,14 +121,15 @@ if __name__ == '__main__':
     unique_dataset_names = all_df['dataset_name'].unique()
     all_df['dataset_name'] = all_df['dataset_name'].replace('adult', 'adult_sigmod')
     restricted_v2 = ['unconstrained', 'Calmon', 'Feld', 'ZafarDI', 'ZafarEO', 'ThresholdOptimizer', 'Kearns', 'Pleiss'] + \
-                    rlp_df_filtered_v2['model_code'].unique().tolist() + ['hybrid_7']
+                    rlp_df_filtered_v2['model_code'].unique().tolist() + ['hybrid_7']+ ['EXPGRAD++']
     sort_map = {name: i for i, name in enumerate(restricted_v2)}
     all_df = all_df.assign(model_sort=all_df['model_code'].map(sort_map)).sort_values(
         ['dataset_name', 'base_model_code', 'constraint_code', 'model_sort'],
         ascending=[True, False, True, True]).drop(columns=['model_sort'])
     # all_df.loc[all_df['model_code'].str.contains('unconstrained'), 'eps'].unique()
     all_df = all_df[all_df['phase'] != 'evaluation']
-
+    #replace hybryd_7 with EXPGRAD++
+    all_df['model_code'] = all_df['model_code'].replace('hybrid_7', 'EXPGRAD++')
     # version v3
     plot_all_df_subplots(all_df, model_list=restricted_v2, chart_name='eps_v3', grouping_col='eps',
                          save=save, show=show, sharex=False, sharey=False,

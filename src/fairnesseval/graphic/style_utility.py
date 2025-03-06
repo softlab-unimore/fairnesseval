@@ -199,7 +199,7 @@ class StyleUtility:
                            'linewidth': linewidth, 'zorder': 3},
         'ZafarDI_orig': {'color': 'tab:purple', 'marker': MarkerStyle('s', fillstyle='none'), 'linestyle': (0, (1, 1)),
                          'linewidth': linewidth, 'zorder': 3},
-        'ZafarEO': {'color': 'tab:purple', 'marker': 's', 'linestyle': (0, (1, 1)), 'linewidth': linewidth, 'alpha': 0.2,
+        'ZafarEO': {'color': 'tab:purple', 'marker': 's', 'linestyle': (0, (1, 1)), 'linewidth': linewidth, 'alpha': 0.5,
                     'zorder': 3},
         'ZafarEO binary': {'color': 'tab:purple', 'marker': 's', 'linestyle': (0, (1, 1)),
                            'linewidth': linewidth, 'zorder': 3},

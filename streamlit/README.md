@@ -26,7 +26,8 @@ Here I will show you how to use the demo by providing input examples for the dif
  'base_model_grid_params': {'C': [0.1]}}
 ```
 - Train Fractions: `[0.063, 0.251, 1]`
-- Train Test fold: `0`
+- Train Test fold: `[0]`
+
 
 
 ### Example 2: N models on M datasets
@@ -45,6 +46,30 @@ Not specified exclusive parameters of each model will be set at their default va
 - Train Fractions: `[0.25]`
 - Train Test fold: `[0, 1]`
 - Default values for others.
+
+### Example 3:
+
+- Dataset: 'adult', 'compas', 'german',
+- Model: `unmitigated`
+- Model parameters:
+
+```
+{ 'base_model_code': ['lr'],
+ 'base_model_grid_params': {'C': [0.1]}}
+```
+- Train Fractions: `[0.063, 0.251, 1]`
+- Train Test fold: `[0, 1]`
+
+## Plot examples
+Examples using 'Presentation single dataset':
+> Select the experiment id of the Example 2.
+
+![eg1.png](eg1.png)
+
+Example using 'Presentation multiple datasets':
+>Select the experiment id of the Example 1 and 3.
+
+![eg2.png](eg2.png)
 
 ## Debugging
 
