@@ -83,14 +83,16 @@ def stpage01_exp_definition_and_execution():
 
     # split_strategy
     available_split_strategies = utils_prepare_data.split_strategy_map.keys()
-    split_strategy = st.selectbox('Split strategy (default: StratifiedKFold with 3 folds.)', available_split_strategies, index=1,
+    split_strategy = st.selectbox('Split strategy (default: StratifiedKFold with 3 folds.)', available_split_strategies,
+                                  index=1,
                                   help='Choose the split strategy. Default is StratifiedKFold with 3 folds. ')
 
     # train_test_fold
     if split_strategy == 'StratifiedKFold':
-        train_test_fold = st.text_input('Train test fold (for StratifiedKFold, K=3): enter a value or a list of values (e.g. [0,1])',
-                                        '[0, 1, 2]', help='Choose the train test fold. To run a single fold, enter a single value.'
-                                                          'eg.: [0]')
+        train_test_fold = st.text_input(
+            'Train test fold (for StratifiedKFold, K=3): enter a value or a list of values (e.g. [0,1])',
+            '[0, 1, 2]', help='Choose the train test fold. To run a single fold, enter a single value.'
+                              'eg.: [0]')
 
     # Experiment ID
     experimentID = st.text_input('Experiment ID: enter the name of the experiment (Required)', f'demo.{i:02d}')
@@ -124,12 +126,17 @@ def stpage01_exp_definition_and_execution():
                     # Execute the experiment
                     launch_experiment_by_config(experiment_conf)
                     st.success("Experiment successfully completed!")
-                    st.markdown( # this should scroll the log to bottom but it isn't working...
+                    st.markdown(  # this should scroll the log to bottom but it isn't working...
                         """<script>document.querySelector('#' + document.querySelector('div[data-baseweb="scrollable-container"]').getAttribute('id')).scrollTop = document.querySelector('  # ' + document.querySelector('div[data-baseweb=scrollable-container]').getAttribute('id')).scrollHeight;</script>""",
                         unsafe_allow_html=True)
                     # open_folder('Open results folder', results_path) # not working
                 except Exception as e:
                     print(f"Error during experiment execution: {str(e)}")
+
+    st.write(f"Experiment results are saved in:"
+             f"\n```\n{results_path}\n```\n"
+             f"each experiment in a separate folder named as the assigned experiment ID.\n"
+             f"To delete an experiment, simply delete the corresponding folder.")
 
 
 if __name__ == '__main__':

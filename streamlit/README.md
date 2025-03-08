@@ -18,8 +18,8 @@ Here I will show you how to use the demo by providing input examples for the dif
 If models have similar parameters, you can use the same parameters for all models. 
 Not specified exclusive parameters of each model will be set at their default value.
 
-- Dataset: german
-- Model: Calmon, Feld, ThresholdOptimizer, ZafarDI
+- Dataset: `german`
+- Model: `Calmon`, `Feld`, `ThresholdOptimizer`, `ZafarDI`
 - Model parameters:
 
 ```python
@@ -33,7 +33,7 @@ Not specified exclusive parameters of each model will be set at their default va
 
 ### Example 2: Exponentiated Gradient with Logistic Regression on M dataset
 
-- Dataset: 'adult', 'compas', 'german'
+- Dataset: `adult`, `compas`, `german`
 - Model: `expgrad`
 - Model parameters:
 
@@ -50,11 +50,11 @@ Not specified exclusive parameters of each model will be set at their default va
 - Default values for others.
 
 
-`This experiment took about 45s on a common laptop.`
+>This experiment took about 45s on a common laptop. It may take longer the at the first exec to download the datasets. 
 
-### Example 3:
+### Example 3: Unmitigated Logistic Regression on M dataset
 
-- Dataset: 'adult', 'compas', 'german'
+- Dataset: `adult`, `compas`, `german`
 - Model: `unmitigated`
 - Model parameters:
 
@@ -72,8 +72,8 @@ Not specified exclusive parameters of each model will be set at their default va
 
 ### Example 4: N models on M datasets
 
-- Dataset: adult, compas, german
-- Model: Calmon, Feld, ThresholdOptimizer, ZafarDI, ZafarEO
+- Dataset: `adult`, `compas`, `german`
+- Model: `Calmon`, `Feld`, `ThresholdOptimizer`, `ZafarDI`
 - Model parameters:
 
 ```python
@@ -83,6 +83,13 @@ Not specified exclusive parameters of each model will be set at their default va
 - Train Fractions: `[0.25]`
 - Train Test fold: `[0, 1]`
 - Default values for others.
+
+### Deleting experiments
+If you want to delete a single experiment, you can navigate and delete the folder with the experiment id in the `results` folder
+that is shown at the end of the Experiment definition and execution page.
+
+
+
 
 
 ## Plot examples
@@ -104,6 +111,7 @@ The following image contains 3 examples of this utility.
 - Experiment ID: `eg2, eg3` (or as defined in the input example 2, 3)
 - X-Attributes: `train_fraction`
 - Y-Attributes: `time, test_error, test_DemographicParity`
+- Groupin attributes: `train_fraction`
 - Others: default
 
 ![eg2.png](eg2.png)
