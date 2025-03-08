@@ -174,6 +174,8 @@ class StyleUtility:
                                    'linestyle': '-', 's': markersize * 3},
         'UNMITIGATED=static': {'color': 'tab:brown', 'marker': 'X', 'linestyle': '-.', 's': unmitigated_markersize,
                                'zorder': 3},
+        'Unmitigated': {'color': 'tab:brown', 'marker': 'X', 'linestyle': '-.', 's': unmitigated_markersize,
+                               'zorder': 3},
         'UNMITIGATED=static binary': {'color': 'tab:brown', 'marker': 'X', 'linestyle': '-.',
                                       's': unmitigated_markersize},
 
