@@ -83,13 +83,14 @@ def stpage01_exp_definition_and_execution():
 
     # split_strategy
     available_split_strategies = utils_prepare_data.split_strategy_map.keys()
-    split_strategy = st.selectbox('Split strategy', available_split_strategies, index=1,
+    split_strategy = st.selectbox('Split strategy (default: StratifiedKFold with 3 folds.)', available_split_strategies, index=1,
                                   help='Choose the split strategy. Default is StratifiedKFold with 3 folds. ')
 
     # train_test_fold
-    train_test_fold = st.text_input('Train test fold: enter a value or a list of values (e.g. [0,1,2]) (default: [0, 1, 2])',
-                                    '[0, 1, 2]', help='Choose the train test fold. To run a single fold, enter a single value.'
-                                                      'eg.: 0')
+    if split_strategy == 'StratifiedKFold':
+        train_test_fold = st.text_input('Train test fold (for StratifiedKFold, K=3): enter a value or a list of values (e.g. [0,1])',
+                                        '[0, 1, 2]', help='Choose the train test fold. To run a single fold, enter a single value.'
+                                                          'eg.: [0]')
 
     # Experiment ID
     experimentID = st.text_input('Experiment ID: enter the name of the experiment (Required)', f'demo.{i:02d}')
@@ -118,9 +119,7 @@ def stpage01_exp_definition_and_execution():
                     'train_test_fold': eval_none(train_test_fold),
                     'params': ['--debug']  # Placeholder for other parameters
                 }
-
-                experiment_conf = {k: v for k, v in experiment_conf.items() if v}
-
+                experiment_conf = {k: v for k, v in experiment_conf.items() if v is not None}
                 try:
                     # Execute the experiment
                     launch_experiment_by_config(experiment_conf)

@@ -34,7 +34,7 @@ def stpage_eda():
                 # Load the dataset
                 _ = utils_prepare_data.get_dataset(dataset_name)
             except Exception as e:
-                st.error(f"Error during dataset generation: {str(e)}")
+                st.error(f"Error during dataset loading: {str(e)}")
             st.success("Dataset loaded successfully!")
 
         log_area.empty()

@@ -13,43 +13,48 @@ streamlit run Fairnesseval.py
 
 Here I will show you how to use the demo by providing input examples for the different models and datasets.
 
-### Example 1: Exponentiated Gradient with Logistic Regression on Adult dataset
 
-- Dataset: 'adult', 'compas', 'german',
+### Example 1: N models on 1 datasets
+If models have similar parameters, you can use the same parameters for all models. 
+Not specified exclusive parameters of each model will be set at their default value.
+
+- Dataset: german
+- Model: Calmon, Feld, ThresholdOptimizer, ZafarDI
+- Model parameters:
+
+```python
+{'base_model_code': 'lr', 'base_model_grid_params': {'C': [0.1]}}
+```
+- Train Fractions: `[0.25]`
+- [optional] Experiment ID: `eg1` (reference for demo Plot examples)
+- Default values for others.
+
+`This experiment took about 15s on a common laptop.`
+
+### Example 2: Exponentiated Gradient with Logistic Regression on M dataset
+
+- Dataset: 'adult', 'compas', 'german'
 - Model: `expgrad`
 - Model parameters:
 
-```
+```python
 {'eps': 0.005,
  'base_model_code': ['lr'],
  'constraint_code': 'dp',
  'base_model_grid_params': {'C': [0.1]}}
 ```
-- Train Fractions: `[0.063, 0.251, 1]`
+
+- Train Fractions: `[0.063, 0.251, 0.5]`
 - Train Test fold: `[0]`
-
-
-
-### Example 2: N models on M datasets
-If models have similar parameters, you can use the same parameters for all models. 
-Not specified exclusive parameters of each model will be set at their default value.
-
-
-- Dataset: adult, compas, german
-- Model: Calmon, Feld, ThresholdOptimizer, ZafarDI, ZafarEO
-- Model parameters:
-
-```
-{'base_model_code': 'lr', 'base_model_grid_params': {'C': [0.1]}}
-- ```
-
-- Train Fractions: `[0.25]`
-- Train Test fold: `[0, 1]`
+- [optional] Experiment ID: `eg2` (for demo Plot examples)
 - Default values for others.
+
+
+`This experiment took about 45s on a common laptop.`
 
 ### Example 3:
 
-- Dataset: 'adult', 'compas', 'german',
+- Dataset: 'adult', 'compas', 'german'
 - Model: `unmitigated`
 - Model parameters:
 
@@ -57,17 +62,49 @@ Not specified exclusive parameters of each model will be set at their default va
 { 'base_model_code': ['lr'],
  'base_model_grid_params': {'C': [0.1]}}
 ```
-- Train Fractions: `[0.063, 0.251, 1]`
+- Train Fractions: `[0.063, 0.251, 0.5]`
+- Train Test fold: `[0]`
+- [optional] Experiment ID: `eg3` (for demo Plot examples)
+- Default values for others.
+
+
+`This experiment took about 40s on a common laptop.`
+
+### Example 4: N models on M datasets
+
+- Dataset: adult, compas, german
+- Model: Calmon, Feld, ThresholdOptimizer, ZafarDI, ZafarEO
+- Model parameters:
+
+```python
+{'base_model_code': 'lr', 'base_model_grid_params': {'C': [0.1]}}
+```
+
+- Train Fractions: `[0.25]`
 - Train Test fold: `[0, 1]`
+- Default values for others.
+
 
 ## Plot examples
-Examples using 'Presentation single dataset':
-> Select the experiment id of the Example 2.
+#### Examples using 'Presentation single dataset':
+> Select the experiment id of the Example 1. (eg1)
 
+- Experiment ID: `eg1` (or as defined in the input example 1)
+- X-Attributes: train_DemographicParity | test_DemographicParity 
+- Y-Attributes: train_error | test_error | time
+- Others: default
+
+ 
+The following image contains 3 examples of this utility.
 ![eg1.png](eg1.png)
 
-Example using 'Presentation multiple datasets':
->Select the experiment id of the Example 1 and 3.
+#### Example using 'Presentation multiple datasets':
+>Select the experiment id of the Example 2 and 3. (eg2, eg3)
+
+- Experiment ID: `eg2, eg3` (or as defined in the input example 2, 3)
+- X-Attributes: `train_fraction`
+- Y-Attributes: `time, test_error, test_DemographicParity`
+- Others: default
 
 ![eg2.png](eg2.png)
 

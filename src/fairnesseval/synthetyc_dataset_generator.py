@@ -18,6 +18,9 @@ class DatasetGenerator:
     def generate_dataset(self):
         rnd = np.random.RandomState(self.args.random_seed)
         # Generate an array of sensitive attribute values
+        if sum(self.args.group_probabilities) != 1:
+            raise ValueError('Sum of group_probabilities should be equal to 1')
+
         sensitive_attributes = rnd.choice(self.args.group_values, size=self.args.n_samples,
                                           p=self.args.group_probabilities)
         # Generate outcomes based on sensitive attribute values

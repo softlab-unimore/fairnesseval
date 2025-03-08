@@ -73,8 +73,10 @@ def stpage05_synthetic_generator():
     #                                               with the remaining probability.''')
     # eps = list(map(float, eps.split()))
 
-    group_values = st.text_input('Sensitive attribute values (space-separated):', '0 1', )
-    group_values = list(map(int, group_values.split()))
+    # group_values = st.text_input('Sensitive attribute values (space-separated: int):', '0 1', )
+    # group_values = list(map(int, group_values.split()))
+    n_group_values = st.number_input('Number of sensitive attribute values:', min_value=2, value=2)
+    group_values = range(n_group_values)
 
     # group_probabilities = st.text_input('Probabilities of each sensitive attribute value (space-separated):',
     #                                     '0.55 0.45')
@@ -108,8 +110,8 @@ def stpage05_synthetic_generator():
             for i in range(num_groups):
                 if f'prob_{i}' not in st.session_state:
                     st.session_state[f'prob_{i}'] = (1 / num_groups)
-                prob = st.slider(f'{group_values[i]}', 0.0, 1.0,
-                                 key=f'prob_{i}', on_change=create_callback(f'prob_{i}'))  # Individual sliders
+                prob = st.slider(f'{group_values[i]}', 0.0, 1.0, value=1 / num_groups,
+                                 key=f'prob_{i}', on_change= create_callback(f'prob_{i}'))  # Individual sliders
                 group_probabilities.append(prob)
         with cols[1]:
             group_target_probabilities = []
